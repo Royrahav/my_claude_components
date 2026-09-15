@@ -1,0 +1,6 @@
+# Throwaway stores used by the tests and by manual checks. Never commit a memory store:
+# the tooling ships in this repo, the data lives in ~/.claude/memory.
+.tmpstore/
+.testrun/
+node_modules/
+*.bak-*

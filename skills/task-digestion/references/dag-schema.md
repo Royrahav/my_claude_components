@@ -44,6 +44,9 @@
       "depends_on": ["T1", "T2"],
       "level": 1
     }
+  ],
+  "open_questions": [
+    "T3: should the endpoint be rate-limited in this mission? The ticket is silent; no task created."
   ]
 }
 ```
@@ -57,6 +60,10 @@ Rules:
   length ending at that task. Recompute it if `depends_on` changes.
 - `milestones` is an empty list (or the key omitted) when the mission didn't warrant any -
   do not backfill a single fake milestone just to fill the field.
+- `open_questions` is a list of strings, each starting with the task ids it affects -
+  ambiguous dependencies, detected cycles, and requirements the mission leaves open. An
+  empty list when there are none. A task named in an open question must not start until
+  a human answers it.
 - No milestone/task exists in the JSON without a matching row in the markdown companion -
   the two must stay in sync; regenerate both together, never patch one by hand.
 
@@ -76,7 +83,10 @@ at a glance:
 | Task | Milestone | Priority | Depends on | Description |
 |---|---|---|---|---|
 | T3 | M2 | P0 | T1, T2 | Expose ingestion REST endpoint |
+
+## Open questions
+- T3: should the endpoint be rate-limited in this mission? The ticket is silent; no task created.
 ```
 
-One section per level, in ascending order. Omit the Milestone column entirely when the
-plan has no milestones.
+One section per level, in ascending order, then `Open questions` (omit it when the list is
+empty). Omit the Milestone column entirely when the plan has no milestones.

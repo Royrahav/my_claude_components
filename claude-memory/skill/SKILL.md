@@ -151,6 +151,24 @@ To compress an oversized memory: split it into linked single-fact memories, or t
 and re-`mem write` the same id. To retire one: `mem set <id> status archived`, or write the
 replacement with `supersedes: [<old-id>]`.
 
+## Obsidian vault (second brain)
+
+When `~/.claude/memory` is a junction into an Obsidian vault (check: `~/.claude/second-brain/`
+exists), every memory under `store/<scope>/<id>.md` is already a vault note, editable by hand;
+hand edits are picked up next session (run `mem reindex` after bulk edits). Around the store the
+vault has:
+
+- `Knowledge/<project-or-topic>/<name>.md` - long-form conclusions (post-mortems, research,
+  design rationale) too big for a memory. Write the note, then a memory whose body links it as
+  `[[Knowledge/<topic>/<name>]]`. Read a Knowledge note only when a memory points at it.
+- `Sessions/YYYY-MM/` - auto journal written by the SessionEnd hook. Never read unless asked.
+- `Inbox.md` - lessons a session missed saving. After the first request of a session, turn each
+  durable line into a `mem write`, drop the rest, and delete the triaged lines.
+
+Never delete the junctions, and never hand-edit `INDEX.md`, `index.json` or `stats.json`
+(generated). Links to Knowledge notes are not memory ids, so `mem doctor` may report them as
+dangling; that is expected.
+
 ## Reference
 
 - `references/cli.md` - every command and flag

@@ -131,6 +131,13 @@ When your prompt contains a `DEV-FLOW` header:
 - `MODE: fix-round` means you are addressing Code Reviewer findings on **your tests**. Fix only the
   listed findings; answer each with `Fixed` (+ file:line) or `Rejected` (+ technical reason).
   Maximum 2 rounds - then you return and the orchestrator escalates to the human.
+- `MODE: fix-round` may also carry System Reliability Agent issues (JSON objects with a
+  `remediation_contract`). You are the only agent that writes their `negative_test_harness` as a
+  real regression test - the reliability agent only specifies it and the developer does not write
+  it. Follow the harness definition (forcing mechanism, assertion, run command), in the project's
+  framework and layout. Answer per issue id: `Written` (+ test name and file) or `Not writable`
+  (+ the missing seam). A hazard located inside test code (a racy fixture, a leaked test resource)
+  is yours to fix too.
 - Do not change production code in a fix round. If a finding can only be fixed in production code,
   say so and return it as an open question.
 - Never commit, shelve, `p4 submit`, `git commit`, or push.

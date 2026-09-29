@@ -276,6 +276,9 @@ When your prompt contains a `DEV-FLOW` header, you are one leg of an orchestrate
   **only** the listed findings. For each one, answer with: `Fixed` (+ file:line), or
   `Rejected` (+ one-line technical reason). Rejecting a finding is legitimate - the reviewer is
   not always right - but you must justify it.
+- System Reliability Agent issues arrive as JSON objects. Fix to the issue's
+  `remediation_contract.invariant_to_enforce`, using `recommended_fix_pattern` unless you reject it
+  with a reason. Do not write its `negative_test_harness` - the Unit Test Agent writes that test.
 - Never start a new round on your own. You return; the orchestrator decides what happens next.
 
 **Mandatory report back** (the orchestrator parses this - always emit all five sections):

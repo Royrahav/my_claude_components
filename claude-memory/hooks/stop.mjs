@@ -14,10 +14,31 @@
  * The instruction it returns is explicit that writing nothing is the correct outcome when
  * nothing durable happened, because a capture pass that always writes something fills the
  * store with noise and makes every future catalog worse.
+ *
+ * Optional second-brain integration: if the `second-brain` skill's PostToolUse hook left a
+ * per-session state file (it only does this when it actually nudged on a file in an ingested
+ * codebase this session), the capture pass also asks about vault findings - this repo has no
+ * hard dependency on that skill, the check is read-only and degrades to a no-op if the file
+ * or skill isn't present.
  */
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { runHook, readPayload, cwdOf, emitJson, claimOnce, claimCooldown, transcriptWeight } from './_common.mjs';
 import { loadConfig } from '../lib/paths.mjs';
 import { resolveScope } from '../lib/scope.mjs';
+
+function secondBrainTouchedThisSession(sessionId) {
+  try {
+    const key = String(sessionId || 'nosession').replace(/[^A-Za-z0-9_-]/g, '_');
+    const stateFile = join(tmpdir(), 'second-brain-hooks', `${key}.json`);
+    if (!existsSync(stateFile)) return false;
+    const state = JSON.parse(readFileSync(stateFile, 'utf8'));
+    return Array.isArray(state.nudged) && state.nudged.length > 0;
+  } catch {
+    return false;
+  }
+}
 
 // Below roughly this much transcript, the session was a question and an answer, not work.
 const MIN_TRANSCRIPT_BYTES = 6000;
@@ -46,7 +67,7 @@ await runHook(async () => {
 
   const scope = resolveScope(cwdOf(payload));
 
-  const reason = [
+  const reasonLines = [
     'MEMORY CAPTURE PASS (automatic, once/session). Do this now, then finish.',
     `Scope: ${scope}. Decide what from this session a future session could not work out alone:`,
     '  feedback: correction/preference (global scope if it is about how you work anywhere)',
@@ -59,7 +80,18 @@ await runHook(async () => {
     'under ~1800 chars; feedback/decision bodies need Why: and How to apply: lines).',
     'Nothing durable: write nothing, say nothing, stop. Mention this pass only if you wrote one,',
     'in one line.',
-  ].join('\n');
+  ];
 
-  emitJson({ decision: 'block', reason });
+  if (secondBrainTouchedThisSession(payload.session_id)) {
+    reasonLines.push(
+      '',
+      'SECOND-BRAIN CHECK: this session touched an ingested codebase. Before finishing, also',
+      'decide whether anything belongs in the vault - a `findings` bullet on an existing note',
+      'for something learned that is not written down yet, or an `ingest` for a type you',
+      'worked with closely that the vault does not cover at all. Same rule: nothing durable,',
+      'touch nothing - do not force a note.',
+    );
+  }
+
+  emitJson({ decision: 'block', reason: reasonLines.join('\n') });
 });

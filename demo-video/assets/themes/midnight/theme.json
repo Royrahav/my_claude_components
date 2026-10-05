@@ -1,0 +1,8 @@
+{
+  "name": "Midnight",
+  "mode": "dark",
+  "colors": { "canvas": "#0D1320", "surface": "#151C2C", "ink": "#E8EDF5", "muted": "#A3AEC2", "light": "#8F9BB3", "accent": "#2DD4BF", "accent2": "#93B4FF", "danger": "#F87171" },
+  "fonts": { "display": "Sora", "body": "Inter", "mono": "JetBrains Mono" },
+  "weights": { "display": [700], "body": [400, 700, 900], "mono": [400, 700] },
+  "logo": null
+}

@@ -1,0 +1,14 @@
+{
+  "scenes": [
+    {
+      "type": "title",
+      "say": "Every release tells a story. This is the one about how we made it simple.",
+      "data": { "kicker": [{ "text": "Faster", "at": "release" }], "title": "Product Name", "subtitle": "One-line value statement", "lockup_at": "simple" }
+    },
+    {
+      "type": "close",
+      "say": "Product Name. One line to remember.",
+      "data": { "title": "Product Name", "tagline": ["One line", "to remember."], "ref": "Ref: TICKET-123" }
+    }
+  ]
+}

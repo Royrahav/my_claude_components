@@ -14,8 +14,8 @@ a revision changed.
    - `overstated`: stronger than its source (planned said as shipped, optional said as required,
      a measurement without its caveat or conditions, "all" for "some");
    - `wrong`: contradicts FACTS.md, or is on its "Must not claim" list.
-4. Recap examples (the `recap` scene) may illustrate, but must add no capability, number,
-   customer, version or behavior beyond FACTS.md. A hypothetical phrased as an example ("For
+4. Summary examples (the `recap` scene, or the scene marked `"summary": true`) may illustrate,
+   but must add no capability, number, customer, version or behavior beyond FACTS.md. A hypothetical phrased as an example ("For
    example, ...") that only applies facts from FACTS.md passes. Flag one that states an invented
    scenario as something that happened, or that implies a capability FACTS.md does not have.
 

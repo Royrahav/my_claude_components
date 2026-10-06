@@ -37,7 +37,7 @@ Reading is enough:
 - Look for proof: tests (count or coverage), benchmarks, load tests, real-world trials. Note the
   conditions of each and what it does not prove.
 - Look for real-life use: ticket user stories, support cases, comments on who hit the problem and
-  when. The video's closing recap builds its examples from these.
+  when. The video's closing summary builds its examples from these.
 
 ## FACTS.md format
 

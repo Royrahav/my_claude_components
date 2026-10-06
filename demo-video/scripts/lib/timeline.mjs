@@ -8,10 +8,18 @@ import { LEAD, ensureDir, ffmpeg, lufs, r3, readJson, writeJson, duration as pro
 
 const VOICE_LUFS = -18;
 export const DEFAULT_HOLD = { title: 3.0, close: 4.0, metrics: 2.2, statement: 2.0, recap: 2.0, options: 1.8, states: 1.8, decision: 1.6 };
+const OTHER_HOLD = 1.4;
+// direction.pacing scales the default holds; a scene's own `hold` is kept as written.
+const PACING_HOLD_SCALE = { measured: 1, brisk: 0.8, relaxed: 1.2 };
 
 const norm = (w) => String(w).toLowerCase().replace(/^[^\w%/.$]+|[^\w%]+$/g, "");
 
-export function buildTimeline(f, scenes, { level = true } = {}) {
+// Seconds a voiced scene holds after its speech.
+export function holdFor(scene, pacing = "measured") {
+  return scene.hold ?? (DEFAULT_HOLD[scene.type] ?? OTHER_HOLD) * PACING_HOLD_SCALE[pacing];
+}
+
+export function buildTimeline(f, scenes, { level = true, pacing } = {}) {
   ensureDir(f.voice);
   let t = 0;
   const out = [];
@@ -35,8 +43,7 @@ export function buildTimeline(f, scenes, { level = true } = {}) {
         }
       }
     }
-    const hold = s.hold ?? DEFAULT_HOLD[s.type] ?? 1.4;
-    const dur = r3(s.duration ?? (s.say ? LEAD + speech + hold : 6));
+    const dur = r3(s.duration ?? (s.say ? LEAD + speech + holdFor(s, pacing) : 6));
     out.push({ id: s.id, type: s.type, start: r3(t), duration: dur, speechEnd: r3(LEAD + speech), words, voice });
     t += dur;
   }

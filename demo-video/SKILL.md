@@ -6,9 +6,11 @@ description: Make a finished, narrated demo video (MP4) that explains a feature,
 # Demo video
 
 Turns a development into a narrated 1920x1080 MP4: animated on-brand scenes, ElevenLabs voice,
-burned-in captions, ducked music, light SFX, -14 LUFS, and a closing recap of the key takeaways
-with real-life examples. You run the flow yourself: the interview, the script, production, the
-layout review, the two gates and delivery. Two cheap helper agents research and fact-check.
+burned-in captions, ducked music, light SFX, -14 LUFS, and a closing summary of the key takeaways
+with real-life examples. Each video's structure, look and signature scene are designed from its
+content, so videos don't share one fixed shape. You run the flow yourself: the interview, the
+script, production, the layout review, the two gates and delivery. Two cheap helper agents
+research and fact-check.
 
 `D` below means `node "<this skill's base directory>/scripts/demo.mjs"`. Commands take the
 project dir as their first argument (`.` when you are in it).
@@ -32,6 +34,7 @@ Read each guide lazily, once, at its step:
 | Step | Guide |
 |---|---|
 | 3. Script | `references/writer.md` and `references/scenes.md` |
+| 3. Signature scene, after gate 1 | `references/custom-scene.md` |
 | 4.1 Production | `references/producer.md` |
 | 4.2 Layout review | `references/qa.md` |
 | 4.3 Final look | the "Final look" section of `references/writer.md` |
@@ -44,7 +47,8 @@ context since step 3.
 
 - Never open generated files (`compositions/`, `index.html`, `.demo/`, `assets/voice/raw/`), the
   skill's template and script source, or frame-by-frame images: read one contact sheet per check.
-  The only exceptions are the ones custom-scene.md names when you build a custom scene.
+  The only exceptions are the ones custom-scene.md names when you build a signature or custom
+  scene.
 - The CLI prints compact summaries. Read them; don't open files to see what a command did.
 
 ## Helpers and questions
@@ -55,9 +59,9 @@ context since step 3.
 - If a `demo-*` type is unavailable, run `D setup` (it installs the agents) and retry. If it is
   still unavailable, spawn `general-purpose` on sonnet with the prompt "Read <skill
   dir>/references/<brief>.md and follow it" (brief: research or checker), plus the usual inputs.
-- Ask in one AskUserQuestion batch with a recommended option first, and skip anything the context
-  answers. Without AskUserQuestion, take the recommended option for each question and list the
-  choices in your final reply.
+- Ask in one AskUserQuestion batch of at most 4 questions, with a recommended option first, and
+  skip anything the context answers. Without AskUserQuestion, take the recommended option for
+  each question and list the choices in your final reply.
 - Keep messages to the user short: one status line per step, then the script and the result.
 
 ## Workflow
@@ -102,8 +106,10 @@ says the folder was just created.
 
 ### 3. Script, then gate 1
 
-When the researcher is done, read `references/writer.md` and `references/scenes.md` and write the
-script as writer.md says: scenes.json, pronunciations, plan and SCRIPT.md.
+When the researcher is done, read `references/writer.md` and `references/scenes.md`. If two open
+questions in FACTS.md change the story, ask them now, in their own batch (2-3 options each, the
+recommended one first), so that gate 1 stays within 4 questions. Then write the script as
+writer.md says: the structure, the direction, scenes.json, pronunciations, plan and SCRIPT.md.
 
 Fact-check, for every video: spawn `demo-checker` with "Scenes: all." It replies `no issues` or up
 to 20 lines of problems. Fix them (one round).
@@ -111,13 +117,20 @@ to 20 lines of problems. Fix them (one round).
 Show the user the script (writer.md, Gate 1 summary), then ask in one AskUserQuestion (at most 4
 questions):
 
-- Each open question, 2-3 options, the recommended one first.
+- The open question still pending, if any: 2-3 options, the recommended one first.
 - Script: "Approve (Recommended)", "Change something".
+- Style: "<the proposed preset and motif> (Recommended)", "Calmer", "Livelier", "Story-driven".
+  They are calm-technical, energetic-launch and story-driven, each with the same motif; when one
+  of them is the proposal, offer minimal-documentary in its place. Write the answer to brief.json
+  `direction`.
 - Voice: "Matilda, professional female (Recommended)", "River, relaxed and neutral",
   "Brian, deep male", "Play samples first". For samples, `D samples .` writes four short mp3s the
   user can play; then ask again. `D voices` lists the other stock voices.
 
 If the answers change the story, revise (writer.md, Revision) and show only the changed scenes.
+
+Once the script is approved, write each signature scene's project template (writer.md, Signature
+scene; custom-scene.md, Signature scene recipe). Production builds and checks it with the rest.
 
 **Re-check.** After any later revision that changes a claim or on-screen text (a user change, a
 fix or template switch at the final look), spawn `demo-checker` again with "Scenes: <the changed
@@ -146,12 +159,15 @@ Deliver the MP4 path, SCRIPT.md and FACTS.md.
 
 ## Changes
 
-Rebuild after any voice change: timing follows the voice. Do each change yourself, with the guide
-that owns it:
+Rebuild after any voice change: timing follows the voice. When editing an existing video at the
+user's request, the house-style warnings about structure, the signature scene and repetition are
+advisory: don't restructure unless the user asks. Do each change yourself, with the guide that owns
+it:
 
 | User asks for | Do it yourself, with | Then |
 |---|---|---|
 | faster or slower voice, another voice, different music, music louder or quieter, no captions, music or SFX, another transition, another built-in theme | producer.md, Change requests | build, check, render (`render --mix-only` for audio-only changes) |
+| another style: calmer or livelier, other captions, background or chrome, slower or faster pacing | brief.json `direction` (scenes.md, Creative direction) | build, check, render; after a pacing change, `D music .` before the render (the length changed) |
 | narration wording, a story change, scenes added, removed or reordered, a claim, a pronunciation fix, a layout no template offers | writer.md, Revision | Re-check if a claim or on-screen text changed; narrate what changed, build, check, render |
 | on-screen text or layout, a visual that lands too early or late | qa.md, Allowed fixes | Re-check if a claim's wording changed; build, check, render |
 | custom colors, fonts or logo | Themes below: edit theme/theme.json and run `D theme .` | build, check, render |
@@ -162,7 +178,8 @@ To resume a project in a new session, `D status <dir>` prints what exists and th
 
 - `brief.json`: name (output file name), product, eyebrow (the small label on every scene),
   audience, length_s, voice {id, name, speed}, captions, music, sfx, music_gain_db,
-  quality (draft, standard or high), music_prompt.
+  quality (draft, standard or high), music_prompt, direction (the video's style; scenes.md,
+  Creative direction).
 - `scenes.json`: the script and the scenes. The format is in references/scenes.md.
 - `FACTS.md`: the claim whitelist. `pronunciations.json`: display/spoken pairs.
 - `theme/`: theme.json, the logo, fonts. Output goes to `renders/<name>.mp4`.
@@ -182,11 +199,14 @@ colors can be used as given.
 - Every narrated or on-screen claim is in FACTS.md. Numbers keep their caveat. Status words are
   exact: optional vs required, shipped vs planned, measured on what.
 - One idea per scene, and visuals land on the spoken word.
-- The second-to-last scene is a recap of 2-4 takeaways, each with a title and a real-life example
-  that adds no capability beyond FACTS.md; then close. Build warns when a video does not end that
-  way, or when the recap is incomplete.
-- Done means zero cue warnings, no house-style warning, lint with 0 errors, check passed, the
-  checker clean on the final text, the contact sheet reviewed (layout review, then the final
-  look), and loudness near -14 LUFS.
+- A structure and a look chosen for this content, and at least one signature scene designed only
+  for this video.
+- The second-to-last scene is the summary (a recap, or a scene marked `summary: true`) of 2-4
+  takeaways with real-life examples that add no capability beyond FACTS.md; then close. Build
+  warns when a video does not end that way, when a recap is incomplete, when no scene is a
+  signature scene, and when templates or transitions repeat.
+- Done means zero cue warnings, no house-style warning (advisory when editing, see Changes), lint
+  with 0 errors, check passed, the checker clean on the final text, the contact sheet reviewed
+  (layout review, then the final look), and loudness near -14 LUFS.
 
 When something is not covered above, read `references/troubleshooting.md`.

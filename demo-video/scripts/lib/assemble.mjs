@@ -3,10 +3,10 @@
 // voice/SFX/captions keep their timing.
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { TRANSITION_SECONDS, enteringTransitions } from "./direction.mjs";
 import { r3 } from "./util.mjs";
 
 const SFX_FILE = { whoosh: "whoosh", click: "click", pop: "pop", chime: "chime", typing: "typing" };
-const DUR = { push: 0.5, zoom: 0.45, fade: 0.6 };
 const VOICE_TRACKS = [10, 11]; // back-to-back clips alternate: on one track, touching ends lint as an overlap
 
 function transitionJs(type, oldSel, newSel, T, D) {
@@ -17,7 +17,8 @@ function transitionJs(type, oldSel, newSel, T, D) {
   return [`tl.to("${oldSel}",{x:-1920,duration:${D},ease:"power3.inOut"},${T});`, `tl.fromTo("${newSel}",{x:1920},{x:0,duration:${D},ease:"power3.inOut"},${T});`];
 }
 
-export function writeIndex(root, tl, scenes, sceneSfx, { canvas, captions, sfxOn }) {
+// `transitions[i]` is how scene i enters (enteringTransitions); without it, push in and fade into the last.
+export function writeIndex(root, tl, scenes, sceneSfx, { canvas, captions, sfxOn, transitions = enteringTransitions(scenes) }) {
   const body = [];
   const js = [];
   const sfx = [];
@@ -25,8 +26,8 @@ export function writeIndex(root, tl, scenes, sceneSfx, { canvas, captions, sfxOn
   tl.scenes.forEach((s, i) => {
     const scene = scenes[i];
     const next = scenes[i + 1];
-    const type = next ? (next.transition ?? (i === scenes.length - 2 ? "fade" : "push")) : "cut";
-    const D = type === "cut" ? 0 : DUR[type] ?? 0.5;
+    const type = next ? transitions[i + 1] : "cut";
+    const D = type === "cut" ? 0 : TRANSITION_SECONDS[type] ?? 0.5;
     const hostDur = r3(s.duration + (next && type !== "cut" ? D : 0));
     body.push(`<div id="el-${s.id}" class="scene" data-composition-id="${s.id}" data-composition-src="compositions/${s.id}.html" data-start="${s.start}" data-duration="${hostDur}" data-track-index="${i % 2}" data-width="1920" data-height="1080"></div>`);
     if (s.voice) body.push(`<audio id="el-${s.id}-voice" src="${s.voice}" data-start="${s.start}" data-duration="${s.duration}" data-track-index="${VOICE_TRACKS[voiceClips++ % 2]}" data-volume="1"></audio>`);

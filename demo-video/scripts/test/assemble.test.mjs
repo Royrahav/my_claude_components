@@ -125,3 +125,35 @@ test("writeIndex_singleScene_writesValidIndexWithoutTransitions", () => {
   assert.match(html, /<!doctype html>/);
   assert.doesNotMatch(html, /tl\.to\("#el-/);
 });
+
+// transitions ---------------------------------------------------------------------------------------
+
+// The tween that moves scene `id` out at a transition, or undefined when it just cuts away.
+const exitOf = (html, id) => html.match(new RegExp(`tl\\.to\\("#el-${id}",\\{([^}]*)\\}`))?.[1];
+const hostDurations = (html) => tagsOf(html, "div").filter((d) => /class="scene"/.test(d)).map((h) => attr(h, "data-duration"));
+
+test("writeIndex_withoutTransitions_pushesIntoEachSceneAndFadesIntoTheLast", () => {
+  const { html } = write([true, true, true]);
+
+  assert.deepEqual([exitOf(html, "s0"), exitOf(html, "s1")], ["x:-1920,duration:0.5,ease:\"power3.inOut\"", "filter:\"blur(10px)\",scale:1.03,opacity:0,duration:0.6,ease:\"power2.inOut\""]);
+});
+
+test("writeIndex_givenTransitions_entersEachSceneThatWay", () => {
+  const { html } = write([true, true, true, true], { options: { ...OPTIONS, transitions: [null, "zoom", "cut", "fade"] } });
+
+  assert.match(exitOf(html, "s0"), /^scale:2\.2,/);
+  assert.equal(exitOf(html, "s1"), undefined);
+  assert.match(exitOf(html, "s2"), /^filter:"blur\(10px\)"/);
+});
+
+test("writeIndex_givenTransitions_extendOnlyTheScenesThatHandOverGradually", () => {
+  const { html } = write([true, true, true, true], { options: { ...OPTIONS, transitions: [null, "zoom", "cut", "fade"] } });
+
+  assert.deepEqual(hostDurations(html), ["5.45", "5", "5.6", "5"]);
+});
+
+test("writeIndex_cutIntoAPipeline_addsNoWhoosh", () => {
+  const { res } = write([true, true], { types: ["bullets", "pipeline"], options: { ...OPTIONS, transitions: [null, "cut"] } });
+
+  assert.equal(res.sfx, 0);
+});

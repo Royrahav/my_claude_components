@@ -10,7 +10,7 @@ import { pathToFileURL } from "node:url";
 import { CONFIG_PATH, HF, LEAD, SKILL_DIR, apiKey, clock, config, defaultBrief, ensureDir, flag, formatDurations, hf, loadProject, onlySet, projectFiles, r2, readJson, run, writeJson } from "./lib/util.mjs";
 import { brandFromSite, fontCss, installFonts, loadTheme } from "./lib/theme.mjs";
 import { STOCK_VOICES, ensureSfx, measuredWps, music, narrate, rateFor, samples, voiceById } from "./lib/voice.mjs";
-import { DEFAULT_HOLD, buildTimeline, makeCue } from "./lib/timeline.mjs";
+import { buildTimeline, holdFor, makeCue } from "./lib/timeline.mjs";
 import { createScene, wrap } from "./lib/kit.mjs";
 import { writeCaptions } from "./lib/captions.mjs";
 import { writeIndex } from "./lib/assemble.mjs";
@@ -18,6 +18,9 @@ import { contactSheet, lintAndCheck } from "./lib/check.mjs";
 import { render } from "./lib/render.mjs";
 import { USER_AGENTS_DIR, installAgents } from "./lib/agents.mjs";
 import { houseStyleWarnings } from "./lib/house-style.mjs";
+import { describeDirection, enteringTransitions, resolveDirection } from "./lib/direction.mjs";
+import { templateFor } from "./lib/variants.mjs";
+import { templatePath, templateSource } from "./lib/template-source.mjs";
 
 const argv = process.argv.slice(2);
 const cmd = argv[0];
@@ -95,11 +98,12 @@ function status() {
 function plan() {
   const { brief, scenes } = loadProject(project());
   const rate = rateFor(brief);
+  const { pacing } = resolveDirection(brief.direction);
   let total = 0;
   let words = 0;
   const rows = scenes.map((s) => {
     const w = (s.say ?? "").split(/\s+/).filter(Boolean).length;
-    const sec = (s.duration ?? (s.say ? LEAD + w / rate + (s.hold ?? DEFAULT_HOLD[s.type] ?? 1.4) : 6));
+    const sec = (s.duration ?? (s.say ? LEAD + w / rate + holdFor(s, pacing) : 6));
     total += sec;
     words += w;
     return `${s.id} ${s.type} ${w}w ~${sec.toFixed(1)}s`;
@@ -120,38 +124,41 @@ async function build() {
   const { f, brief, scenes } = loadProject(root);
   const only = onlySet(flag(argv, "only"));
   const theme = loadTheme(f.theme);
+  const direction = resolveDirection(brief.direction);
+  const transitions = enteringTransitions(scenes, direction.transitions);
   const fontsCss = fontCss(root);
-  const { tl, warnings } = buildTimeline(f, scenes);
+  const { tl, warnings } = buildTimeline(f, scenes, { pacing: direction.pacing });
+  const sources = scenes.map((s) => templateSource(root, s.type));
   const sfxMapPath = join(root, ".demo", "sfx.json");
   const sceneSfx = only && existsSync(sfxMapPath) ? readJson(sfxMapPath) : {};
   ensureDir(f.comps);
   for (const [i, s] of scenes.entries()) {
     if (only && !only.has(s.id)) continue;
     const stl = tl.scenes[i];
-    if (s.type === "custom") {
+    if (sources[i] === "custom") {
       const file = join(f.comps, `${s.id}.html`);
       if (!existsSync(file)) warnings.push(`${s.id}: custom scene file compositions/${s.id}.html missing`);
       else writeFileSync(file, readFileSync(file, "utf8").replace(/(data-composition-id="[^"]+" data-start="0" data-duration=")[\d.]+/, `$1${stl.duration}`).replace(/(class="clip[^"]*" data-start="0" data-duration=")[\d.]+/, `$1${stl.duration}`));
       continue;
     }
-    const local = join(root, "scenes", `${s.type}.mjs`);
-    const tplPath = existsSync(local) ? local : join(SKILL_DIR, "scripts", "lib", "scenes", `${s.type}.mjs`);
+    const tplPath = templatePath(root, s.type);
     if (!existsSync(tplPath)) throw new Error(`${s.id}: unknown scene type "${s.type}" (not in the skill or <project>/scenes/)`);
-    const tpl = (await import(pathToFileURL(tplPath).href)).default;
-    const k = createScene({ id: s.id, theme, fontsCss, brief, scene: s, duration: stl.duration });
+    const tpl = templateFor(await import(pathToFileURL(tplPath).href), s);
+    const k = createScene({ id: s.id, theme, fontsCss, brief, scene: s, duration: stl.duration, direction });
     const res = tpl(k, s.data ?? {}, makeCue(stl, warnings)) ?? {};
-    writeFileSync(join(f.comps, `${s.id}.html`), wrap(k, { fontsCss, chrome: res.chrome !== false, eyebrow: brief.eyebrow ?? brief.product }));
+    writeFileSync(join(f.comps, `${s.id}.html`), wrap(k, { fontsCss, chrome: res.chrome !== false, eyebrow: brief.eyebrow ?? brief.product, entrance: transitions[i] }));
     sceneSfx[s.id] = k.sfx;
   }
   writeJson(sfxMapPath, sceneSfx);
-  const caps = brief.captions !== false ? writeCaptions(root, tl, theme, fontsCss) : 0;
+  const caps = brief.captions !== false ? writeCaptions(root, tl, theme, fontsCss, direction.captions) : 0;
   const sfxOn = brief.sfx !== false && existsSync(join(f.sfx, "pop.mp3"));
   if (brief.sfx !== false && !sfxOn) warnings.push("SFX files missing: run `sfx` (or set brief.sfx false)");
-  const { sfx } = writeIndex(root, tl, scenes, sceneSfx, { canvas: theme.colors.canvas, captions: brief.captions !== false, sfxOn });
+  const { sfx } = writeIndex(root, tl, scenes, sceneSfx, { canvas: theme.colors.canvas, captions: brief.captions !== false, sfxOn, transitions });
   const dashes = JSON.stringify(scenes).match(/[\u2013\u2014]/g);
   if (dashes) warnings.push(`${dashes.length} em/en dash characters in scenes.json (house style: plain hyphens)`);
-  warnings.push(...houseStyleWarnings(scenes));
-  say(formatDurations(tl, only), `total ${clock(tl.total)} (${tl.total}s), captions ${caps} groups, sfx ${sfx}`, ...warnings.slice(0, 20).map((w) => `warn: ${w}`));
+  warnings.push(...houseStyleWarnings(scenes, { sources, transitions }));
+  const directionLine = brief.direction ? [`direction: ${describeDirection(direction)}`] : [];
+  say(formatDurations(tl, only), `total ${clock(tl.total)} (${tl.total}s), captions ${caps} groups, sfx ${sfx}`, ...directionLine, ...warnings.slice(0, 20).map((w) => `warn: ${w}`));
 }
 
 function script() {

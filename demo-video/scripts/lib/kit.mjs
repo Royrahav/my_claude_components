@@ -1,7 +1,9 @@
 // Scene kit: every template builds HTML/CSS/timeline through these helpers so all scenes share one
-// look (theme vars, dot-grid canvas, chrome, chips, cards, icons, motion vocabulary) and one
-// lint-clean HyperFrames sub-composition shape. Ids/classes are prefixed with the scene id.
+// look (theme vars, background, chrome, chips, cards, icons, motion vocabulary) and one lint-clean
+// HyperFrames sub-composition shape. The video's direction picks the background, chrome and motion.
+// Ids/classes are prefixed with the scene id.
 
+import { DEFAULT_DIRECTION, TRANSITION_SECONDS } from "./direction.mjs";
 import { rgba, themeVars } from "./theme.mjs";
 
 export const ICONS = {
@@ -47,7 +49,27 @@ const f2 = (x) => Math.round(x * 1000) / 1000;
 // Free vertical band for content: below the chrome (or the h2 headline), above the captions at y=900.
 const BAND = { top: 150, titleTop: 240, bottom: 860 };
 
-export function createScene({ id, theme, fontsCss, brief, scene, duration }) {
+// direction.motion: calm keeps every duration and ease as written; lively plays the reveals faster with
+// overshooting eases. `to` is a template's own choreography (glides, the close's fade-out), so it keeps
+// its duration and any ease the template passes; only its default ease follows the motion.
+const MOTION = {
+  calm: { durationScale: 1, eases: { rise: "power3.out", pop: "back.out(1.6)", slide: "power3.out", fade: "power2.out", grow: "power3.out", draw: "power2.inOut", to: "power2.out", count: "power2.out" } },
+  lively: { durationScale: 0.75, eases: { rise: "back.out(1.7)", pop: "back.out(2.2)", slide: "back.out(1.5)", fade: "power3.out", grow: "back.out(1.6)", draw: "expo.out", to: "power3.out", count: "expo.out" } },
+};
+
+// direction.background: the canvas plus an optional layer that drifts (grid dots, or soft theme-tinted
+// glows). The glows peak at the corners and stay off the top right and the bottom center, where small
+// accent and light text sits (the chapter tag, the close ref), so that text still reaches AA.
+const BACKGROUNDS = {
+  grid: { layer: "grid", css: (p) => `.${p("grid")}{position:absolute;inset:-60px;background-image:radial-gradient(circle,var(--grid) 2px,transparent 2.5px);background-size:46px 46px}` },
+  soft: {
+    layer: "glow",
+    css: (p) => `.${p("glow")}{position:absolute;inset:-60px;background:radial-gradient(48% 58% at 0% 0%,var(--tint2),transparent),radial-gradient(50% 60% at 100% 100%,var(--tint2),transparent),radial-gradient(40% 50% at 0% 100%,var(--ntint),transparent),radial-gradient(70% 55% at 60% 0%,var(--surface),transparent 70%)}`,
+  },
+  plain: { layer: null, css: () => "" },
+};
+
+export function createScene({ id, theme, fontsCss, brief, scene, duration, direction = DEFAULT_DIRECTION }) {
   const p = (n) => `${id}-${n}`;
   const css = [];
   const html = [];
@@ -55,9 +77,12 @@ export function createScene({ id, theme, fontsCss, brief, scene, duration }) {
   const sfx = [];
   const sel = (s) => (s.startsWith("#") ? s : `#${p(s)}`);
   const tw = (line) => js.push(line);
+  const { durationScale, eases } = MOTION[direction.motion];
+  const scaled = (seconds) => (durationScale === 1 ? seconds : f2(seconds * durationScale));
+  const backgroundLayer = BACKGROUNDS[direction.background].layer;
 
   const k = {
-    id, p, css, html, js, sfx, duration, theme, brief, scene,
+    id, p, css, html, js, sfx, duration, theme, brief, scene, direction,
     esc,
     hasLogo: Boolean(theme.logo),
     // Top y that vertically centers a block of height h in the free band (ending at `bottom`).
@@ -85,27 +110,28 @@ export function createScene({ id, theme, fontsCss, brief, scene, duration }) {
     },
 
     // motion vocabulary (fromTo everywhere: seek-safe, hidden before the reveal)
-    rise: (s, t, dy = 22, dur = 0.55) => tw(`tl.fromTo("${sel(s)}",{opacity:0,y:${dy}},{opacity:1,y:0,duration:${dur},ease:"power3.out"},${f2(t)});`),
-    pop: (s, t, dur = 0.45) => tw(`tl.fromTo("${sel(s)}",{opacity:0,scale:0.7},{opacity:1,scale:1,duration:${dur},ease:"back.out(1.6)"},${f2(t)});`),
-    slide: (s, t, dx = -40, dur = 0.55) => tw(`tl.fromTo("${sel(s)}",{opacity:0,x:${dx}},{opacity:1,x:0,duration:${dur},ease:"power3.out"},${f2(t)});`),
-    fade: (s, t, dur = 0.5) => tw(`tl.fromTo("${sel(s)}",{opacity:0},{opacity:1,duration:${dur},ease:"power2.out"},${f2(t)});`),
-    grow: (s, t, dur = 0.7) => tw(`tl.fromTo("${sel(s)}",{opacity:0,scale:0.92},{opacity:1,scale:1,duration:${dur},ease:"power3.out"},${f2(t)});`),
-    draw: (s, t, dur = 0.6) => tw(`tl.fromTo("${sel(s)}",{scaleX:0},{scaleX:1,duration:${dur},ease:"power2.inOut"},${f2(t)});`),
-    drawY: (s, t, dur = 0.6) => tw(`tl.fromTo("${sel(s)}",{scaleY:0},{scaleY:1,duration:${dur},ease:"power2.inOut"},${f2(t)});`),
-    type: (s, t, dur = 0.9) => tw(`tl.fromTo("${sel(s)}",{clipPath:"inset(0 100% 0 0)"},{clipPath:"inset(0 0% 0 0)",duration:${dur},ease:"steps(24)"},${f2(t)});`),
-    to: (s, t, props, dur = 0.5, ease = "power2.out") => tw(`tl.to("${sel(s)}",Object.assign(${JSON.stringify(props)},{duration:${dur},ease:"${ease}"}),${f2(t)});`),
+    rise: (s, t, dy = 22, dur = 0.55) => tw(`tl.fromTo("${sel(s)}",{opacity:0,y:${dy}},{opacity:1,y:0,duration:${scaled(dur)},ease:"${eases.rise}"},${f2(t)});`),
+    pop: (s, t, dur = 0.45) => tw(`tl.fromTo("${sel(s)}",{opacity:0,scale:0.7},{opacity:1,scale:1,duration:${scaled(dur)},ease:"${eases.pop}"},${f2(t)});`),
+    slide: (s, t, dx = -40, dur = 0.55) => tw(`tl.fromTo("${sel(s)}",{opacity:0,x:${dx}},{opacity:1,x:0,duration:${scaled(dur)},ease:"${eases.slide}"},${f2(t)});`),
+    fade: (s, t, dur = 0.5) => tw(`tl.fromTo("${sel(s)}",{opacity:0},{opacity:1,duration:${scaled(dur)},ease:"${eases.fade}"},${f2(t)});`),
+    grow: (s, t, dur = 0.7) => tw(`tl.fromTo("${sel(s)}",{opacity:0,scale:0.92},{opacity:1,scale:1,duration:${scaled(dur)},ease:"${eases.grow}"},${f2(t)});`),
+    draw: (s, t, dur = 0.6) => tw(`tl.fromTo("${sel(s)}",{scaleX:0},{scaleX:1,duration:${scaled(dur)},ease:"${eases.draw}"},${f2(t)});`),
+    drawY: (s, t, dur = 0.6) => tw(`tl.fromTo("${sel(s)}",{scaleY:0},{scaleY:1,duration:${scaled(dur)},ease:"${eases.draw}"},${f2(t)});`),
+    type: (s, t, dur = 0.9) => tw(`tl.fromTo("${sel(s)}",{clipPath:"inset(0 100% 0 0)"},{clipPath:"inset(0 0% 0 0)",duration:${scaled(dur)},ease:"steps(24)"},${f2(t)});`),
+    to: (s, t, props, dur = 0.5, ease = eases.to) => tw(`tl.to("${sel(s)}",Object.assign(${JSON.stringify(props)},{duration:${dur},ease:"${ease}"}),${f2(t)});`),
     // No immediateRender: the HTML already shows 0, and the linter files all proxy counters as one target.
     count(eid, to, t, dur = 1.0, decimals = 0, comma = false) {
-      tw(`(function(){var o={v:0},el=document.getElementById("${p(eid)}");tl.fromTo(o,{v:0},{v:${to},duration:${dur},ease:"power2.out",immediateRender:false,onUpdate:function(){var s=o.v.toFixed(${decimals});${comma ? 's=s.replace(/\\B(?=(\\d{3})+(?!\\d))/g,",");' : ""}el.textContent=s;}},${f2(t)});})();`);
+      tw(`(function(){var o={v:0},el=document.getElementById("${p(eid)}");tl.fromTo(o,{v:0},{v:${to},duration:${scaled(dur)},ease:"${eases.count}",immediateRender:false,onUpdate:function(){var s=o.v.toFixed(${decimals});${comma ? 's=s.replace(/\\B(?=(\\d{3})+(?!\\d))/g,",");' : ""}el.textContent=s;}},${f2(t)});})();`);
     },
     // off -> on: knob slides by transform (layout-property tweens stutter in frame capture)
     flip(eid, t) {
-      tw(`tl.fromTo("#${p(eid)}-k",{x:0},{x:34,duration:0.35,ease:"power2.inOut"},${f2(t)});`);
-      tw(`tl.fromTo("#${p(eid)}",{backgroundColor:"${rgba(theme.colors.ink, 0.12)}"},{backgroundColor:"${theme.colors.accent}",duration:0.35,ease:"power2.inOut"},${f2(t)});`);
+      tw(`tl.fromTo("#${p(eid)}-k",{x:0},{x:34,duration:${scaled(0.35)},ease:"power2.inOut"},${f2(t)});`);
+      tw(`tl.fromTo("#${p(eid)}",{backgroundColor:"${rgba(theme.colors.ink, 0.12)}"},{backgroundColor:"${theme.colors.accent}",duration:${scaled(0.35)},ease:"power2.inOut"},${f2(t)});`);
     },
     sound: (name, t, volume) => sfx.push({ sound: name, t: f2(Math.max(0, t)), volume }),
+    // The background layer drifts and the camera pushes in slowly; a plain background has no layer.
     ambient(until = duration) {
-      tw(`tl.fromTo("#${p("grid")}",{x:0,y:0},{x:-40,y:-20,duration:${f2(until)},ease:"none"},0);`);
+      if (backgroundLayer) tw(`tl.fromTo("#${p(backgroundLayer)}",{x:0,y:0},{x:-40,y:-20,duration:${f2(until)},ease:"none"},0);`);
       tw(`tl.fromTo("#${p("cam")}",{scale:1},{scale:1.02,duration:${f2(until)},ease:"none"},0);`);
     },
   };
@@ -117,9 +143,9 @@ const toneVar = (tone) =>
 
 export function baseCss(k) {
   const p = k.p;
+  const layerCss = BACKGROUNDS[k.direction.background].css(p);
   return `#root{position:absolute;inset:0;overflow:hidden;font-family:var(--font-body);color:var(--ink);${themeVars(k.theme)}}
-.${p("bg")}{position:absolute;inset:0;background:var(--canvas);overflow:hidden}
-.${p("grid")}{position:absolute;inset:-60px;background-image:radial-gradient(circle,var(--grid) 2px,transparent 2.5px);background-size:46px 46px}
+.${p("bg")}{position:absolute;inset:0;background:var(--canvas);overflow:hidden}${layerCss ? `\n${layerCss}` : ""}
 .${p("cam")}{position:absolute;inset:0;transform-origin:50% 45%}
 .${p("eyebrow")}{position:absolute;left:96px;top:63px;font:700 19px var(--font-body);letter-spacing:.08em;color:var(--accent-text);text-transform:uppercase}
 .${p("tag")}{position:absolute;right:96px;top:54px;font:700 18px var(--font-body);letter-spacing:.06em;color:var(--accent-text);background:var(--tint2);border-radius:100px;padding:9px 21px;text-transform:uppercase}
@@ -151,16 +177,32 @@ export function baseCss(k) {
 .${p("col")}{display:flex;flex-direction:column;gap:14px}`;
 }
 
-// Wraps a built scene into the HyperFrames sub-composition fragment.
-export function wrap(k, { fontsCss, chrome = true, eyebrow }) {
+// The chrome a scene shows: none when its template opts out (`chrome: false`); otherwise direction.chrome
+// keeps the eyebrow and the chapter tag (full), only the tag (minimal), or neither (none).
+function chromeParts(k, templateChrome, eyebrow) {
+  if (!templateChrome) return [];
+  const level = k.direction.chrome;
+  return [
+    level === "full" && { name: "eyebrow", text: eyebrow },
+    level !== "none" && k.scene.chapter && { name: "tag", text: k.scene.chapter },
+  ].filter(Boolean);
+}
+
+// A crossfade shows both scenes at once, each with its chrome in the same corners, so the incoming chrome
+// waits until the outgoing scene has faded out.
+const chromeStart = (entrance) => (entrance === "fade" ? TRANSITION_SECONDS.fade : 0);
+
+// Wraps a built scene into the HyperFrames sub-composition fragment. `entrance` is how the scene enters
+// (enteringTransitions); null for the first scene.
+export function wrap(k, { fontsCss, chrome = true, eyebrow, entrance = null }) {
   const p = k.p;
   const D = f2(k.duration);
-  const chromeHtml = chrome
-    ? `<div id="${p("eyebrow")}" class="${p("eyebrow")}">${esc(eyebrow)}</div>${k.scene.chapter ? `<div id="${p("tag")}" class="${p("tag")}">${esc(k.scene.chapter)}</div>` : ""}`
-    : "";
-  if (chrome) {
-    k.js.unshift(`tl.fromTo(["#${p("eyebrow")}"${k.scene.chapter ? `,"#${p("tag")}"` : ""}],{opacity:0,y:8},{opacity:1,y:0,duration:0.4,ease:"power3.out"},0);`);
+  const parts = chromeParts(k, chrome, eyebrow);
+  const chromeHtml = parts.map(({ name, text }) => `<div id="${p(name)}" class="${p(name)}">${esc(text)}</div>`).join("");
+  if (parts.length) {
+    k.js.unshift(`tl.fromTo([${parts.map(({ name }) => `"#${p(name)}"`).join(",")}],{opacity:0,y:8},{opacity:1,y:0,duration:0.4,ease:"power3.out"},${chromeStart(entrance)});`);
   }
+  const layer = BACKGROUNDS[k.direction.background].layer;
   return `<template id="${k.id}-template">
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
 <style>
@@ -169,7 +211,7 @@ ${baseCss(k)}
 ${k.css.join("\n")}
 </style>
 <div id="root" data-composition-id="${k.id}" data-start="0" data-duration="${D}" data-width="1920" data-height="1080">
-<div id="${p("bg")}" class="clip ${p("bg")}" data-start="0" data-duration="${D}" data-track-index="0"><div id="${p("grid")}" class="${p("grid")}"></div></div>
+<div id="${p("bg")}" class="clip ${p("bg")}" data-start="0" data-duration="${D}" data-track-index="0">${layer ? `<div id="${p(layer)}" class="${p(layer)}"></div>` : ""}</div>
 <div id="${p("cam")}" class="${p("cam")}">
 ${k.html.join("\n")}
 </div>

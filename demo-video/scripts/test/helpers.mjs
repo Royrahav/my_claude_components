@@ -1,5 +1,6 @@
 // Shared test helpers: build a real scene kit from a synthetic timeline and read back what a template emitted.
 import { createScene } from "../lib/kit.mjs";
+import { resolveDirection } from "../lib/direction.mjs";
 import { makeCue } from "../lib/timeline.mjs";
 
 export const SCENE_ID = "s1";
@@ -15,9 +16,11 @@ export function sceneTimeline({ duration = 20, words = [], speechEnd } = {}) {
   return { id: SCENE_ID, type: "x", start: 0, duration, speechEnd: end, words };
 }
 
-export function buildScene(template, data, timeline = sceneTimeline()) {
+// `direction` is a brief.json direction; without it the scene gets the original look.
+export function buildScene(template, data, timeline = sceneTimeline(), { direction } = {}) {
   const warnings = [];
-  const k = createScene({ id: SCENE_ID, theme: THEME, fontsCss: "", brief: {}, scene: {}, duration: timeline.duration });
+  const look = direction ? { direction: resolveDirection(direction) } : {};
+  const k = createScene({ id: SCENE_ID, theme: THEME, fontsCss: "", brief: {}, scene: {}, duration: timeline.duration, ...look });
   const c = makeCue(timeline, warnings);
   const result = template(k, data, c);
   return { k, c, result, warnings, html: k.html.join("\n"), css: k.css.join("\n") };

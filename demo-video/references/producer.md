@@ -5,9 +5,9 @@ command's one-line summary for your status line. `D` = `node "<skill dir>/script
 
 - Never print, log or write the ElevenLabs API key.
 - Edit only, at this step: cue `at` fixes and dash replacement in scenes.json; the change-table
-  edits (brief.json voice, speed, music, `music_gain_db` and the `captions`, `music` and `sfx`
-  flags; a scene's `transition`; a theme switch via `D theme . --use`); and the one speed fit.
-  For anything else, stop and fix it at the right step (see the end).
+  edits (brief.json voice, speed, music, `music_gain_db`, `direction` and the `captions`, `music`
+  and `sfx` flags; a scene's `transition`; a theme switch via `D theme . --use`); and the one
+  speed fit. For anything else, stop and fix it at the right step (see the end).
 
 ## Pipeline, in order
 
@@ -29,7 +29,8 @@ the final look: a render made before them goes stale with their first fix.
      wording or pronunciation problem: writer.md, Revision.
    - Em or en dash in scenes.json: replace each with a comma, or with a plain hyphen inside a
      range or a compound.
-   - `warn: house style:` (a missing, misplaced or incomplete recap): writer.md, Revision.
+   - `warn: house style:` (the summary ending, a recap's items, no signature scene, or repeated
+     templates or transitions): writer.md, Revision.
 2. Then re-voice once. The speed fit re-voices every scene, the fixed ones included, so it comes
    after the fixes and runs at most once:
    - The build total is more than 5% away from `length_s` (brief.json): run `D plan .`, which
@@ -65,6 +66,7 @@ Never work around a failing line: fix its cause at that step.
 | music louder or quieter | brief.json `music_gain_db` (+3 or -3) |
 | no captions, music or SFX | brief.json `captions` / `music` / `sfx`: false, `D build .`, `D check .` |
 | another transition | scenes.json scene `transition`: push, zoom, fade or cut; `D build .`, `D check .` |
+| another style: calmer, livelier, captions, background, chrome, pacing | brief.json `direction` (scenes.md, Creative direction); `D build .`, `D check .`; after a pacing change also `D music .` |
 | another theme | `D theme . --use labos` (or neutral, midnight), `D build .`, `D check .` |
 
 Then the render step: `D render .`, or `D render . --mix-only` after an audio-only change (music

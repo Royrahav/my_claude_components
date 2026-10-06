@@ -12,6 +12,7 @@
 | `music` fails (403/402) | The plan has no Music API. Use `music --file <mp3>` with a track the user may use, or set brief `music` to false. |
 | `build`: cue not in narration | Point `at` at a word that is actually spoken in that scene (display form), or use `word#2` / a number. |
 | `build`: unknown scene type | Fix the spelling (the templates are listed in scenes.md), or add `<project>/scenes/<type>.mjs`. |
+| `build`: `brief.json direction...` must be one of, or has an unknown field | Fix that field in brief.json `direction`; the message lists the allowed values (scenes.md, Creative direction). |
 | `check: FAILED` with contrast lines (HyperFrames itself may still print "Check passed") | Custom theme: darken `muted`/`light` on light themes (lighten them on dark ones). Accent text and the text on accent fills are derived automatically. |
 | `check`: layout overflow or overlap | Shorten labels (titles up to 6 words, chips up to 4), or use fewer items per scene. |
 | `lint` errors in a custom template | Use the kit's motion helpers. Don't animate `left`/`top`/`width`/letter-spacing, and don't add `tl.set` at time 0. Write JS files with the Write tool, because shell heredocs eat backslashes. |

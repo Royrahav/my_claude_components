@@ -8,7 +8,11 @@ then produces the video. Each video has:
 - burned-in captions;
 - background music and light sound effects;
 - broadcast-level loudness;
-- a closing summary of the key takeaways, with real-life examples.
+- a summary of the key takeaways, with real-life examples.
+
+Each video is shaped by its demo's own content: a structure chosen from what it explains, a
+creative direction (calm, energetic, story-driven or documentary), layout variants, and one
+bespoke signature scene.
 
 ## Install (about 2 minutes)
 
@@ -41,6 +45,10 @@ Videos go to the projects folder chosen at setup (default `~/demo-videos/<name>/
 The default is the company theme (labOS). Built-in alternatives are `neutral` (light) and
 `midnight` (dark). You can also match any brand: give Claude a website URL, or colors, a Google
 font and a logo.
+
+Within the theme, each video gets its own structure and style, designed from what it explains:
+Claude proposes a style (calm and technical, energetic, story-driven or minimal) with the script,
+and builds at least one scene designed only for that video.
 
 ## Cost
 

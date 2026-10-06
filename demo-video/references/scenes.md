@@ -1,27 +1,79 @@
 # Writing scenes.json
 
-Contents: story spines, writing rules, scene fields, cues, the 14 templates (fields + a tested example each).
+Contents: designing the structure, summary forms, creative direction, words and timing, writing
+rules, scene fields, cues, the 14 templates (fields, layout variants, a tested example each).
 
-## Story spines
+## Designing the structure
 
-Pick the spine that fits, drop scenes the facts can't fill, and keep one idea per scene. Every
-spine ends with recap -> close.
+Design the order from this content and this audience; never reuse one order by default. Pick a
+pattern, or combine some (a scenario cold open, then problem, turn, payoff), and drop scenes the
+facts can't fill.
 
-**Feature (3-5 min):** title (hook) -> split (the problem before) -> options (the decision, if
-alternatives were weighed) -> pipeline (architecture at a glance) -> 2-4 of decision / steps /
-code (inside the key parts, one per scene) -> cards (turning it on, rollback) -> states (a
-switch: today vs later) -> metrics (proof) -> bullets (what you get) -> statement (availability)
--> recap -> close.
+| Pattern | Shape | Use it when |
+|---|---|---|
+| Journey | follow one real request, job or user through the system, one stop per scene | architecture, a flow across components |
+| Problem, turn, payoff | what hurt, the insight or decision, what it gives now | a feature with a clear why |
+| Before/after | the old behavior, the change, the verified new behavior | bug fixes, migrations |
+| Scenario | a day in the life: one person, their task, how it goes now | customer-facing teams, support, execs |
+| Numbers first | lead with the proof, then how it was earned | performance, reliability or cost work |
+| Questions and answers | each scene answers one question the audience asks | support-style how-tos |
+| Myth vs fact | the belief, then the facts that correct it | correcting a misconception |
+| Outcome first, then how | the result first, then how it works and how to turn it on | busy audiences, teasers |
 
-**Bug fix (1.5-3 min):** title (the symptom as a headline) -> split (what users saw, impact) ->
-pipeline or decision (where in the flow it broke, root cause) -> steps or code (the fix) ->
-metrics or states (verified before/after) -> statement (shipped in, who is affected, any action
-needed) -> recap -> close.
+Rules for every structure:
+- Hook within the first 5 seconds; never open with "In this video".
+- One idea per scene, 8-20 s each.
+- A title scene need not come first: a cold-open scenario can come before the title lockup.
+- One or two signature scenes (writer.md).
+- End with a summary, then close.
 
-**Teaser (60-90 s):** title -> split -> pipeline -> metrics or bullets -> recap -> close.
+### Summary forms
 
-**Short how-to (60-90 s, engineers or support):** title -> split (before/after) -> cards (how to
-set it) -> decision or steps (how it behaves) -> bullets (checklist or gotchas) -> recap -> close.
+The second-to-last scene is the summary and `close` is last. Pick the form that fits the
+structure:
+- **Recap** (default): 2-4 takeaways, each with a real-life example (the `recap` template below).
+- **Callback to the opening scenario**: the person or job from the cold open, now solved (`split`,
+  `steps`, or the signature scene's template).
+- **Final before/after**: `split`, the old way beside the new.
+- **Checklist**: `bullets` or `cards`, one item per thing to remember or check.
+- **"What to do now" card**: `cards` or `statement`, the next action for each audience.
+
+Any template can be the summary: set `"summary": true` on the scene (a `recap` always is one).
+Build warns when a video does not end with a summary, then close.
+
+## Creative direction (brief.json `direction`)
+
+Each video gets its own look, proposed from its content (writer.md). Every field is optional;
+without `direction`, the video keeps the original look (the first value of each knob).
+
+```json
+"direction": { "preset": "energetic-launch", "mood": "upbeat and confident", "motif": "a print job racing through the gateway", "captions": "lower" }
+```
+
+- `preset`: a starting point from the table below. Knobs set beside it override it.
+- `mood` (text): the feel. Write `music_prompt` from it.
+- `motif` (text): the visual idea tied to the content. The signature scene builds on it.
+- `pacing`: `measured` (the default holds), `brisk` (about 0.8x) or `relaxed` (about 1.2x). A
+  scene's own `hold` is kept.
+- `motion`: `calm` (as built) or `lively` (quicker reveals with a slight overshoot).
+- `chrome`: `full` (eyebrow and chapter tag), `minimal` (the chapter tag only) or `none`.
+- `background`: `grid` (dotted grid with drift), `plain` (the canvas only) or `soft` (faint
+  theme-tinted glows).
+- `captions`: `pill`, `lower` (a full-width band at the bottom) or `minimal` (text only, on the
+  canvas).
+- `transitions`: how scenes without their own `transition` enter: `push`, `fade`, `zoom` or `cut`
+  everywhere, `mixed` (a varied mix), or a list such as `["cut", "fade"]` (repeat a name to weight
+  it). Each scene's pick is fixed by its position, so rebuilds match. The last scene fades in
+  unless it sets its own.
+
+| Preset | pacing | motion | chrome | background | captions | transitions |
+|---|---|---|---|---|---|---|
+| calm-technical | measured | calm | full | grid | pill | fade, fade, push |
+| energetic-launch | brisk | lively | minimal | soft | pill | push, zoom |
+| story-driven | relaxed | calm | none | soft | lower | fade, fade, fade, cut |
+| minimal-documentary | measured | calm | none | plain | minimal | cut, fade |
+
+A wrong field or value stops the build with a message that names it.
 
 ## Words and timing
 
@@ -33,8 +85,7 @@ rates vary from about 2.0 to 2.5 words per second with the text.
 
 ## Writing rules
 
-- Write for the ear: short sentences (under 20 words), active voice, concrete nouns. Hook within
-  the first 5 seconds; never open with "In this video".
+- Write for the ear: short sentences (under 20 words), active voice, concrete nouns.
 - For mixed audiences, gloss each technical name once in plain words ("CUPS, the standard print
   system of Linux and macOS"), then use it consistently.
 - On-screen text is labels, not sentences: titles up to 6 words, chips up to 4, card text up to 10.
@@ -58,12 +109,17 @@ Scene fields:
   `custom` (see custom-scene.md).
 - `say`: the narration. Leave it empty for a silent scene and set `duration` instead.
 - `data`: the template's fields. Every field marked `?` is optional.
-- `chapter?`: a small tag at the top right ("The problem"). Title and close scenes don't show it.
+- `chapter?`: a small tag at the top right ("The problem"). Title and close scenes don't show it,
+  and neither does `chrome: "none"`.
 - `id?`: defaults to s01, s02 ... by position. `--only` takes ids.
+- `summary?`: `true` makes this scene the video's summary (Summary forms).
+- `variant?`: a template's layout variant, where the template offers them (listed under each template
+  below); defaults to `default`. An unknown name stops the build and lists the valid ones.
 - `hold?`: seconds held after the speech (defaults: title 3, close 4, metrics 2.2, statement and
-  recap 2, options and states 1.8, decision 1.6, others 1.4).
-- `transition?`: how this scene enters: `push` (default), `zoom`, `fade` or `cut`. The last scene
-  fades in by default.
+  recap 2, options and states 1.8, decision 1.6, others 1.4; the direction's pacing scales them).
+- `transition?`: how this scene enters: `push`, `zoom`, `fade` or `cut`. By default it comes from
+  the direction's `transitions` (push without one), and the last scene fades in. An unknown name
+  stops the build and lists the valid ones.
 
 ## Cues (`at`)
 
@@ -81,10 +137,19 @@ Chip tones: accent (default), good, navy, bad, neutral, plain.
 
 ## Templates
 
+Six templates offer layout variants of the same data (scene field `variant`). Vary variants across a
+video, and pick the one that fits the content; the build warns when one template and variant play back
+to back.
+
 ### title: the opening
 Kicker words punch in, then the logo + title lockup.
 `kicker?` [string | {text, at}] (up to 3 items of 1-2 words each), `title`, `subtitle?`, `lockup_at?`, `logo?` (false hides it).
 A `lockup_at` too early for the kickers is delayed until they have played.
+Variants:
+- `kinetic`: each kicker fills the screen in turn, then collapses into the lockup. For a punchy,
+  energetic open; needs `kicker`, and crowded kickers are spaced out so each can be read.
+- `split`: the lockup on the left from the start; the kickers, then the subtitle, on a tinted panel on
+  the right. When the open should say what the feature covers; needs `kicker` or `subtitle`.
 ```json
 { "type": "title", "say": "Reports. Forms. Distribution. labOS now prints from containers, through one central service.",
   "data": { "kicker": [{ "text": "Reports", "at": "Reports" }, { "text": "Forms", "at": "Forms" }, { "text": "Distribution", "at": "Distribution" }],
@@ -95,6 +160,9 @@ A `lockup_at` too early for the kickers is delayed until they have played.
 `title?`, `left` and `right` {label, tone?, at?, items: [{text, icon?, tone?: good | bad | navy | plain, at?}]}
 (2-4 items each), `footer?` [{text, icon?, tone?, at?}]. Items without an icon get a check (good)
 or a cross (bad).
+Variants:
+- `stacked`: the left side's items in a row on top, the right side's below, a horizontal divider
+  between. For longer item text, or a change that reads old-then-new from top to bottom.
 ```json
 { "type": "split", "chapter": "The problem", "say": "Before, each server printed through its own spooler. Containers have no spooler, so printing failed.",
   "data": { "left": { "label": "Before", "items": [{ "text": "Windows spooler", "icon": "server", "at": "spooler" }, { "text": "SumatraPDF", "icon": "doc" }] },
@@ -117,6 +185,10 @@ Cards in a row. On `decide_at` the chosen one glides left and grows, and the oth
 `title?`, `stations` [{title, icon?, chips?: [..], code?, hero?: true, at?}],
 `links?` [{label?, mono?: true, at?}] (one per gap), `helpers?` [{text, link?: gap index from 0 | under?: station index, at?}]
 (dashed side components), `packet?` (false hides the packet).
+Variants:
+- `vertical`: stations top to bottom; link labels left of the links, chips and code right of each
+  station, helpers in a column on the right. Best for 2-4 stations, such as a request going down a
+  stack; keep chips short.
 ```json
 { "type": "pipeline", "chapter": "Architecture", "say": "labOS sends a PDF to the gateway, the gateway hands it to CUPS, and CUPS prints over IPP.",
   "data": { "title": "The whole picture",
@@ -199,6 +271,9 @@ At most 12 short lines type in, and lines highlight on their cues. Show only wha
 
 ### bullets: key points or general fallback
 `title?`, `items` [{icon?, title, text?, at?}] (2-6, in a row or a 2-row grid).
+Variants:
+- `list`: a vertical list, a big numeral (or the item's icon) left of each title and text. For
+  ordered points, steps to follow, or a checklist summary.
 ```json
 { "type": "bullets", "chapter": "Key points", "say": "One service, every PDF printer, and full traceability in Kibana.",
   "data": { "title": "What you get", "items": [{ "icon": "gate", "title": "One service", "text": "Printing leaves the app containers.", "at": "service" },
@@ -207,18 +282,25 @@ At most 12 short lines type in, and lines highlight on their cues. Show only wha
 
 ### statement: availability or status
 `eyebrow?`, `big`, `sub?`, `icon?`, `at?`, `chips?` [{text, tone?: good | neutral | bad, at?}].
+Variants:
+- `full-bleed`: the statement, huge, on a band of solid accent across the frame, chips below it. For
+  the one line the viewer must remember (a release, a number, a verdict); keep `big` to about 14
+  characters for the largest type. Use it once per video.
 ```json
 { "type": "statement", "chapter": "Availability", "say": "It ships in labOS 5.44 for containerized deployments. Other sites stay unchanged.",
   "data": { "eyebrow": "Ships in", "big": "labOS 5.44", "sub": "Containerized deployments", "icon": "container", "at": "ships",
             "chips": [{ "text": "Other sites: unchanged", "at": "Other" }, { "text": "Label printing: not included", "tone": "neutral" }] } }
 ```
 
-### recap: the summary (always second to last, right before close)
+### recap: the default summary (second to last, right before close)
 The key takeaways, each with one real-life example. Rows appear one by one; each example fades in under its title.
 `title?` (default "What to remember"), `items` [{title, example, icon?, who?, at?, example_at?}]
 (2-4: title up to 6 words, example a short phrase of up to 12 words), `footer?` {text, at?} (a bottom-line chip).
 A row shows a number badge (or its `icon`), the title, an "e.g." example, and a `who` chip (the role it matters to).
 `at` names the title, `example_at` the example (default: 0.6 s after the row). Narrate 25-45 words, and speak each example.
+Variants:
+- `cards`: the takeaways as a row of cards, each holding its badge, title, example and `who` chip.
+  For parallel takeaways, such as one per role, or after a row-based scene.
 ```json
 { "type": "recap", "chapter": "Recap", "say": "To remember: one central service prints every PDF. For example, a report from a container site just prints. It is traceable, so support finds a job by its ID. And it is configuration only, so rollback is one setting.",
   "data": { "items": [{ "title": "One central service", "example": "A container site's report just prints", "who": "Developers", "at": "central", "example_at": "report" },

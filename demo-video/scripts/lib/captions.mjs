@@ -94,14 +94,30 @@ export function captionGroups(tl) {
     .filter((g) => g.end > g.start);
 }
 
-export function writeCaptions(root, tl, theme, fontsCss) {
-  writeFileSync(join(root, "compositions", "captions.html"), captionsHtml(tl, theme, fontsCss));
+// direction.captions. `.cap-pill` is the box around a group's words in every style: a centered pill, a
+// full-width band at the bottom (lower), or no box with a canvas-colored halo (minimal). Each stays in the
+// caption band (y 900 to 1080), and the words are large text (44px bold), so AA needs 3:1.
+const CAPTION_STYLES = {
+  pill: { box: ".cap-pill{max-width:78%;padding:16px 40px 20px;background:color-mix(in srgb,var(--accent) 4%,var(--canvas));border:1.5px solid color-mix(in srgb,var(--accent) 20%,transparent);border-radius:14px}", line: "" },
+  lower: {
+    box: ".cap-pill{position:absolute;left:0;right:0;bottom:0;height:150px;box-sizing:border-box;padding:0 96px;display:flex;align-items:center;background:color-mix(in srgb,var(--accent) 4%,var(--canvas));border-top:3px solid var(--accent)}",
+    line: ".cap-line{justify-content:flex-start}",
+  },
+  minimal: {
+    box: ".cap-pill{max-width:78%}",
+    line: ".cap-line{text-shadow:0 0 14px var(--canvas),0 0 4px var(--canvas)}\n.cap-line .is-active{text-shadow:none}",
+  },
+};
+
+export function writeCaptions(root, tl, theme, fontsCss, style) {
+  writeFileSync(join(root, "compositions", "captions.html"), captionsHtml(tl, theme, fontsCss, style));
   return captionGroups(tl).length;
 }
 
 // The captions sub-composition: each group shows from its start to its end, its words lit as spoken.
-export function captionsHtml(tl, theme, fontsCss) {
+export function captionsHtml(tl, theme, fontsCss, style = "pill") {
   const groups = captionGroups(tl);
+  const look = CAPTION_STYLES[style];
   return `<template id="captions-template" data-composition-id="captions" data-width="1920" data-height="1080">
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
 <style>
@@ -109,8 +125,8 @@ ${fontsCss}
 #root{position:absolute;inset:0;pointer-events:none;${themeVars(theme)}}
 .cap-stage{position:absolute;left:0;right:0;top:900px;height:180px;display:flex;align-items:center;justify-content:center}
 .cap-group{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0}
-.cap-pill{max-width:78%;padding:16px 40px 20px;background:color-mix(in srgb,var(--accent) 4%,var(--canvas));border:1.5px solid color-mix(in srgb,var(--accent) 20%,transparent);border-radius:14px}
-.cap-line{display:flex;flex-wrap:wrap;justify-content:center;gap:.08em .14em;font:700 44px/1.1 var(--font-body);letter-spacing:-.005em}
+${look.box}
+.cap-line{display:flex;flex-wrap:wrap;justify-content:center;gap:.08em .14em;font:700 44px/1.1 var(--font-body);letter-spacing:-.005em}${look.line ? `\n${look.line}` : ""}
 .cap-word{display:inline-block;padding:0 .1em;border-radius:.28em;color:color-mix(in srgb,var(--ink) 68%,var(--canvas))}
 .cap-word.is-active{color:var(--on-accent);background:var(--accent-text)}
 .cap-word.is-spoken{color:var(--ink);background:transparent}

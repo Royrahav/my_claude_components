@@ -39,7 +39,8 @@ structure:
 - **"What to do now" card**: `cards` or `statement`, the next action for each audience.
 
 Any template can be the summary: set `"summary": true` on the scene (a `recap` always is one).
-Build warns when a video does not end with a summary, then close.
+Build warns and `D check` fails without it. A summary scene shows an accent "Summary" label
+(`summary_label` renames it) in the chapter tag's place.
 
 ## Creative direction (brief.json `direction`)
 
@@ -61,6 +62,8 @@ without `direction`, the video keeps the original look (the first value of each 
   theme-tinted glows).
 - `captions`: `pill`, `lower` (a full-width band at the bottom) or `minimal` (text only, on the
   canvas).
+- `tone` (`playful`, `light`, `balanced`, `serious`, `critical`) sets the voice delivery (a change
+  re-voices all scenes); `freedom` (`guided`, `creative`, `auteur`) and `notes` (text) steer the writer.
 - `transitions`: how scenes without their own `transition` enter: `push`, `fade`, `zoom` or `cut`
   everywhere, `mixed` (a varied mix), or a list such as `["cut", "fade"]` (repeat a name to weight
   it). Each scene's pick is fixed by its position, so rebuilds match. The last scene fades in
@@ -96,7 +99,6 @@ rates vary from about 2.0 to 2.5 words per second with the text.
 - No em or en dashes anywhere (build warns). Use commas, periods or a plain hyphen.
 - Respell names the voice gets wrong in pronunciations.json (`{"display": "labOS", "spoken": "lab O S"}`,
   `{"display": "5.44", "spoken": "five forty-four"}`). Captions show the display form.
-- The close tagline is 2-3 short phrases, and they are spoken too.
 
 ## scenes.json
 
@@ -116,7 +118,7 @@ Scene fields:
 - `variant?`: a template's layout variant, where the template offers them (listed under each template
   below); defaults to `default`. An unknown name stops the build and lists the valid ones.
 - `hold?`: seconds held after the speech (defaults: title 3, close 4, metrics 2.2, statement and
-  recap 2, options and states 1.8, decision 1.6, others 1.4; the direction's pacing scales them).
+  recap 2, options and states 1.8, decision 1.6, beat 0.8, close with `sting` 1.5, others 1.4; the direction's pacing scales them).
 - `transition?`: how this scene enters: `push`, `zoom`, `fade` or `cut`. By default it comes from
   the direction's `transitions` (push without one), and the last scene fades in. An unknown name
   stops the build and lists the valid ones.
@@ -292,6 +294,13 @@ Variants:
             "chips": [{ "text": "Other sites: unchanged", "at": "Other" }, { "text": "Label printing: not included", "tone": "neutral" }] } }
 ```
 
+### beat: a punch of rhythm
+One to four words, or a number, punched in huge at the center: a pattern interrupt between longer
+scenes. Silent (default 1.6 s, or set `duration`) or one short line. `text`, `sub?`, `at?`. Variant `invert`: accent background, inverted text.
+```json
+{ "type": "beat", "duration": 1.6, "data": { "text": "Zero spooler files" } }
+```
+
 ### recap: the default summary (second to last, right before close)
 The key takeaways, each with one real-life example. Rows appear one by one; each example fades in under its title.
 `title?` (default "What to remember"), `items` [{title, example, icon?, who?, at?, example_at?}]
@@ -313,9 +322,20 @@ Strategies (pick one, and examples may only apply facts from FACTS.md):
 - Mixed audience: one takeaway per role (developers, PMs, support), each with its `who` chip.
 
 ### close: the final scene (always last)
-Logo, title and tagline phrases (the last in accent, underlined), then a fade out.
-`title`, `tagline` [string | {text, at}] (2-3), `ref?` (a small line, such as the ticket), `logo?` (false hides it).
+Default: logo, title, 1-3 tagline phrases (`underline: false` drops the last one's sweep).
+`title`, `tagline` [string | {text, at}], `ref?` (a small line, such as the ticket), `logo?` (false hides).
 ```json
 { "type": "close", "say": "labOS Print Gateway. One service. PDF or not. No spooler.",
   "data": { "title": "Print Gateway", "tagline": [{ "text": "One service.", "at": "One" }, { "text": "PDF or not.", "at": "PDF" }, { "text": "No spooler.", "at": "No" }], "ref": "Ref: LAB-16894" } }
+```
+Variants (small logo, no title repeat; each takes `ref?`, `logo?`):
+- `punchline`: `line` (one sentence, revealed word by word), `sub?`, `at?`.
+- `cta`: `action`, `steps?` [string | {text, at}] (up to 3), `code?` (a mono line), `where?`.
+- `callback`: `hook` (the opening line), `answer`, `hook_at?`, `answer_at?`; the hook is struck through.
+- `sting`: the logo (or product name), `title?`. For 2-3 s: silent with `duration`, or a short line.
+```json
+{ "type": "close", "variant": "punchline", "say": "One service. Every PDF.", "data": { "line": "One service. Every PDF.", "sub": "No spooler." } }
+{ "type": "close", "variant": "cta", "say": "Turn it on in settings.", "data": { "action": "Turn it on", "steps": ["Open Settings", "Enable it"] } }
+{ "type": "close", "variant": "callback", "say": "Lost jobs? Gone.", "data": { "hook": "Where did my job go?", "answer": "Right here.", "answer_at": "Gone" } }
+{ "type": "close", "variant": "sting", "duration": 2.5, "data": { "title": "Print Gateway" } }
 ```

@@ -7,8 +7,13 @@ import { join } from "node:path";
 import { LEAD, ensureDir, ffmpeg, lufs, r3, readJson, writeJson, duration as probe } from "./util.mjs";
 
 const VOICE_LUFS = -18;
-export const DEFAULT_HOLD = { title: 3.0, close: 4.0, metrics: 2.2, statement: 2.0, recap: 2.0, options: 1.8, states: 1.8, decision: 1.6 };
+export const DEFAULT_HOLD = { title: 3.0, close: 4.0, metrics: 2.2, statement: 2.0, recap: 2.0, options: 1.8, states: 1.8, decision: 1.6, beat: 0.8 };
+// A layout variant can hold differently from its template ("template/variant"): the sting is a short sign-off.
+const VARIANT_HOLD = { "close/sting": 1.5 };
 const OTHER_HOLD = 1.4;
+const SILENT_SECONDS = 6;
+const SILENT_BEAT_SECONDS = 1.6;
+const SILENT_STING_SECONDS = 2.5;
 // direction.pacing scales the default holds; a scene's own `hold` is kept as written.
 const PACING_HOLD_SCALE = { measured: 1, brisk: 0.8, relaxed: 1.2 };
 
@@ -16,7 +21,15 @@ const norm = (w) => String(w).toLowerCase().replace(/^[^\w%/.$]+|[^\w%]+$/g, "")
 
 // Seconds a voiced scene holds after its speech.
 export function holdFor(scene, pacing = "measured") {
-  return scene.hold ?? (DEFAULT_HOLD[scene.type] ?? OTHER_HOLD) * PACING_HOLD_SCALE[pacing];
+  return scene.hold ?? defaultHold(scene) * PACING_HOLD_SCALE[pacing];
+}
+
+const defaultHold = (scene) => VARIANT_HOLD[`${scene.type}/${scene.variant}`] ?? DEFAULT_HOLD[scene.type] ?? OTHER_HOLD;
+
+// A scene's length without its own `duration`: lead + speech + hold when voiced, else a fixed length.
+export function silentSeconds(scene) {
+  if (scene.type === "beat") return SILENT_BEAT_SECONDS;
+  return scene.type === "close" && scene.variant === "sting" ? SILENT_STING_SECONDS : SILENT_SECONDS;
 }
 
 export function buildTimeline(f, scenes, { level = true, pacing } = {}) {
@@ -43,7 +56,7 @@ export function buildTimeline(f, scenes, { level = true, pacing } = {}) {
         }
       }
     }
-    const dur = r3(s.duration ?? (s.say ? LEAD + speech + holdFor(s, pacing) : 6));
+    const dur = r3(s.duration ?? (s.say ? LEAD + speech + holdFor(s, pacing) : silentSeconds(s)));
     out.push({ id: s.id, type: s.type, start: r3(t), duration: dur, speechEnd: r3(LEAD + speech), words, voice });
     t += dur;
   }

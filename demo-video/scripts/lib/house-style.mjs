@@ -6,6 +6,8 @@ const MAX_RECAP_ITEMS = 4;
 const MAX_TEMPLATE_SHARE = 0.4;
 const MIN_SCENES_FOR_SHARE = 5;
 const MIN_SCENES_FOR_TRANSITIONS = 6;
+const MIN_SCENES_FOR_RHYTHM = 6;
+const MIN_RHYTHM_SPREAD = 1.6; // longest over shortest middle scene
 
 const ENDING_WARNING = "house style: end with a summary scene (a recap, or any scene with summary: true), then close";
 const RECAP_WARNING = `house style: recap needs ${MIN_RECAP_ITEMS}-${MAX_RECAP_ITEMS} items, each with a title and an example`;
@@ -13,17 +15,20 @@ const SIGNATURE_WARNING = "house style: no signature scene (a project template d
 
 const isBlank = (value) => String(value ?? "").trim() === "";
 const isCompleteRecapItem = (item) => !isBlank(item?.title) && !isBlank(item?.example);
-const isSummary = (scene) => scene.type === "recap" || scene.summary === true;
-const isClose = (scene) => scene.type === "close";
+export const isSummary = (scene) => scene.type === "recap" || scene.summary === true;
+export const isClose = (scene) => scene.type === "close";
+// A beat is punctuation, so it is not counted as a template use (it still may not repeat back to back).
+const isBeat = (scene) => scene.type === "beat";
 
 function isCompleteRecap(scene) {
   const items = Array.isArray(scene.data?.items) ? scene.data.items : [];
   return items.length >= MIN_RECAP_ITEMS && items.length <= MAX_RECAP_ITEMS && items.every(isCompleteRecapItem);
 }
 
-// `sources[i]` is where scene i's template came from (templateSource) and `transitions[i]` how it
-// enters (enteringTransitions), so the rules see the video as built.
-export function houseStyleWarnings(scenes, { sources, transitions }) {
+// `sources[i]` is where scene i's template came from (templateSource), `transitions[i]` how it
+// enters (enteringTransitions) and `durations[i]` how long it runs (the timeline), so the rules see the
+// video as built. Without durations the rhythm rule is skipped.
+export function houseStyleWarnings(scenes, { sources, transitions, durations = [] }) {
   return [
     endingWarning(scenes),
     recapWarning(scenes),
@@ -31,6 +36,7 @@ export function houseStyleWarnings(scenes, { sources, transitions }) {
     ...backToBackWarnings(scenes),
     ...overusedTemplateWarnings(scenes),
     sameTransitionWarning(transitions),
+    rhythmWarning(durations),
   ].filter(Boolean);
 }
 
@@ -62,7 +68,7 @@ function backToBackWarnings(scenes) {
 // Every video has a close and a summary, so they are left out of the count; a single use never repeats.
 function overusedTemplateWarnings(scenes) {
   if (scenes.length < MIN_SCENES_FOR_SHARE) return [];
-  const counted = scenes.filter((scene) => !isClose(scene) && !isSummary(scene));
+  const counted = scenes.filter((scene) => !isClose(scene) && !isSummary(scene) && !isBeat(scene));
   const uses = countBy(counted.filter((scene) => scene.type !== "custom").map((scene) => scene.type));
   return [...uses]
     .filter(([, count]) => count > 1 && count > counted.length * MAX_TEMPLATE_SHARE)
@@ -74,6 +80,16 @@ function sameTransitionWarning(transitions) {
   if (transitions.length < MIN_SCENES_FOR_TRANSITIONS) return null;
   const kinds = new Set(transitions.slice(1, -1));
   return kinds.size === 1 ? `house style: every scene enters with ${[...kinds][0]} (the final fade aside); vary direction.transitions or a scene's transition` : null;
+}
+
+// Scenes of nearly one length play like a metronome; the first and last (opening, close) are left out.
+function rhythmWarning(durations) {
+  if (durations.length < MIN_SCENES_FOR_RHYTHM) return null;
+  const middle = durations.slice(1, -1);
+  const [shortest, longest] = [Math.min(...middle), Math.max(...middle)];
+  return longest / shortest < MIN_RHYTHM_SPREAD
+    ? `house style: monotone rhythm (every scene ${Math.round(shortest)}-${Math.round(longest)} s); mix in a short beat or a longer showcase`
+    : null;
 }
 
 function countBy(values) {

@@ -5,10 +5,27 @@ import { existsSync, readdirSync, readFileSync, writeFileSync, copyFileSync } fr
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
+import { resolveDirection } from "./direction.mjs";
 import { CACHE_DIR, apiKey, duration, ensureDir, ffmpeg, r3, readJson, writeJson, run } from "./util.mjs";
 
 const API = "https://api.elevenlabs.io";
 const MODEL = "eleven_multilingual_v2";
+
+// Delivery by direction.tone (stability: lower is more expressive; style: exaggeration). Balanced is the
+// original 0.5 / 0, so a project without a tone, or with balanced, keeps its narration stamps.
+export const TONE_DELIVERY = Object.freeze({
+  playful: { stability: 0.35, style: 0.45 },
+  light: { stability: 0.45, style: 0.25 },
+  balanced: { stability: 0.5, style: 0 },
+  serious: { stability: 0.6, style: 0 },
+  critical: { stability: 0.7, style: 0 },
+});
+const SIMILARITY_BOOST = 0.75;
+
+// The stability and style for a tone; an unset tone is balanced. An unknown tone throws.
+export const deliveryFor = (tone) => TONE_DELIVERY[resolveDirection({ tone }).tone ?? "balanced"];
+
+const isBalanced = ({ stability, style }) => stability === TONE_DELIVERY.balanced.stability && style === TONE_DELIVERY.balanced.style;
 
 // wps = measured words per second at speed 1.0 on dense narration (used by `plan`).
 export const STOCK_VOICES = [
@@ -163,13 +180,13 @@ function displayText(spoken, swaps, from, to) {
 
 const rounded = (w) => ({ text: w.text, start: r3(w.start), end: r3(w.end) });
 
-export async function synth(project, { voice, text, previous, next, speed = 1, out }) {
+export async function synth(project, { voice, text, previous, next, speed = 1, out, delivery = TONE_DELIVERY.balanced }) {
   const pron = loadPron(project);
   const spoken = respell(text, pron);
   const body = {
     text: spoken.text,
     model_id: MODEL,
-    voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0, use_speaker_boost: true, speed },
+    voice_settings: { stability: delivery.stability, similarity_boost: SIMILARITY_BOOST, style: delivery.style, use_speaker_boost: true, speed },
   };
   if (previous) body.previous_text = toSpoken(previous, pron);
   if (next) body.next_text = toSpoken(next, pron);
@@ -178,13 +195,22 @@ export async function synth(project, { voice, text, previous, next, speed = 1, o
   return { words: displayWords(res.alignment, spoken), seconds: duration(out) };
 }
 
+// The key a take is filed under: the voice, speed and spoken text, plus the delivery only when a tone
+// changed it, so a project without a tone (or balanced) keeps the stamps it had before tones existed.
+export function narrationStamp(brief, scene, pron) {
+  const delivery = deliveryFor(brief.direction?.tone);
+  const settings = isBalanced(delivery) ? [] : [delivery];
+  return createHash("sha1").update(JSON.stringify([brief.voice.id, brief.voice.speed ?? 1, toSpoken(scene.say, pron), ...settings])).digest("hex").slice(0, 16);
+}
+
 // Raw takes for every scene (or `only`), 3 requests at a time.
 // Re-voices only scenes whose spoken text, voice or speed changed (stamp in raw/<id>.key). A take whose
 // stamp now belongs to another id (scenes inserted or reordered) is moved there instead of re-synthesized.
 export async function narrate(project, scenes, brief, only, force = false) {
   const dir = ensureDir(join(project, "assets", "voice", "raw"));
   const pron = loadPron(project);
-  const stamp = (s) => createHash("sha1").update(JSON.stringify([brief.voice.id, brief.voice.speed ?? 1, toSpoken(s.say, pron)])).digest("hex").slice(0, 16);
+  const delivery = deliveryFor(brief.direction?.tone);
+  const stamp = (s) => narrationStamp(brief, s, pron);
   const file = (id, ext) => join(dir, `${id}.${ext}`);
   const takes = new Map();
   for (const id of readdirSync(dir).filter((x) => x.endsWith(".key")).map((x) => x.slice(0, -4)))
@@ -212,6 +238,7 @@ export async function narrate(project, scenes, brief, only, force = false) {
         previous: scenes[i - 1]?.say,
         next: scenes[i + 1]?.say,
         speed: brief.voice.speed ?? 1,
+        delivery,
         out: join(dir, `${s.id}.mp3`),
       });
       writeJson(join(dir, `${s.id}.words.json`), r.words);

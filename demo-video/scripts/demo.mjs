@@ -2,7 +2,7 @@
 // demo-video CLI. Every command prints a few compact lines (they are read by the agent).
 //   node demo.mjs <command> [project-dir] [options]
 // Commands: setup | init | theme | theme-from-site | voices | samples | plan | narrate | sfx | music |
-//           build | check | render | script | status
+//           build | check | render | script | status | history
 
 import { cpSync, existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
@@ -10,13 +10,14 @@ import { pathToFileURL } from "node:url";
 import { CONFIG_PATH, HF, LEAD, SKILL_DIR, apiKey, clock, config, defaultBrief, ensureDir, flag, formatDurations, hf, loadProject, onlySet, projectFiles, r2, readJson, run, writeJson } from "./lib/util.mjs";
 import { brandFromSite, fontCss, installFonts, loadTheme } from "./lib/theme.mjs";
 import { STOCK_VOICES, ensureSfx, measuredWps, music, narrate, rateFor, samples, voiceById } from "./lib/voice.mjs";
-import { buildTimeline, holdFor, makeCue } from "./lib/timeline.mjs";
+import { buildTimeline, holdFor, makeCue, silentSeconds } from "./lib/timeline.mjs";
 import { createScene, wrap } from "./lib/kit.mjs";
 import { writeCaptions } from "./lib/captions.mjs";
 import { writeIndex } from "./lib/assemble.mjs";
-import { contactSheet, lintAndCheck } from "./lib/check.mjs";
+import { checkOutcome, contactSheet, lintAndCheck } from "./lib/check.mjs";
 import { render } from "./lib/render.mjs";
-import { USER_AGENTS_DIR, installAgents } from "./lib/agents.mjs";
+import { USER_AGENTS_DIR, cursorHome, cursorSkillDiscovery, hostsFor, installAgents, installCursorAgents } from "./lib/agents.mjs";
+import { historyPaths, historyReport, recordOf, recordRender, safeHistoryWarnings } from "./lib/history.mjs";
 import { houseStyleWarnings } from "./lib/house-style.mjs";
 import { describeDirection, enteringTransitions, resolveDirection } from "./lib/direction.mjs";
 import { templateFor } from "./lib/variants.mjs";
@@ -41,10 +42,25 @@ async function setup() {
   say(`projects dir: ${config().projects_dir}`);
   const key = apiKey();
   say(key ? "ElevenLabs key: found" : `ElevenLabs key: MISSING (ask the user for it, then write ELEVENLABS_API_KEY=... to ${join(CONFIG_PATH, "..", ".env")})`);
+  const cursorDir = cursorHome();
+  const hosts = hostsFor(flag(argv, "host"), { cursorExists: existsSync(cursorDir) });
+  if (hosts.claude) setupClaudeAgents();
+  if (hosts.cursor) setupCursorAgents(cursorDir);
+}
+
+function setupClaudeAgents() {
   const agents = installAgents(join(SKILL_DIR, "agents"), USER_AGENTS_DIR);
   const stale = agents.removed.length ? `; removed stale: ${agents.removed.join(", ")}` : "";
   say(`agents: ${agents.installed.length} installed (${agents.installed.join(", ")})${stale}`);
   if (agents.created) say("restart Claude Code once: the agents folder was just created");
+}
+
+// Cursor copies go to <cursor home>/agents; --cursor-model <id> replaces the default (inherit the parent model).
+function setupCursorAgents(cursorDir) {
+  const model = flag(argv, "cursor-model", "inherit");
+  if (typeof model !== "string" || model.trim() === "") throw new Error("--cursor-model needs a Cursor model id (as listed in Cursor's model picker)");
+  const agents = installCursorAgents(join(SKILL_DIR, "agents"), join(cursorDir, "agents"), { model });
+  say(`cursor agents: ${agents.installed.length} installed in ${join(cursorDir, "agents")} (model ${model})`, cursorSkillDiscovery({ cursorDir }));
 }
 
 // Copies a built-in theme (labos | neutral | midnight) or a theme folder / theme.json into <project>/theme.
@@ -103,7 +119,7 @@ function plan() {
   let words = 0;
   const rows = scenes.map((s) => {
     const w = (s.say ?? "").split(/\s+/).filter(Boolean).length;
-    const sec = (s.duration ?? (s.say ? LEAD + w / rate + holdFor(s, pacing) : 6));
+    const sec = (s.duration ?? (s.say ? LEAD + w / rate + holdFor(s, pacing) : silentSeconds(s)));
     total += sec;
     words += w;
     return `${s.id} ${s.type} ${w}w ~${sec.toFixed(1)}s`;
@@ -156,9 +172,22 @@ async function build() {
   const { sfx } = writeIndex(root, tl, scenes, sceneSfx, { canvas: theme.colors.canvas, captions: brief.captions !== false, sfxOn, transitions });
   const dashes = JSON.stringify(scenes).match(/[\u2013\u2014]/g);
   if (dashes) warnings.push(`${dashes.length} em/en dash characters in scenes.json (house style: plain hyphens)`);
-  warnings.push(...houseStyleWarnings(scenes, { sources, transitions }));
+  warnings.push(...houseStyleWarnings(scenes, { sources, transitions, durations: tl.scenes.map((s) => s.duration) }));
+  warnings.push(...safeHistoryWarnings(recordOf({ root, brief, scenes, sources, direction }), historyPaths().history));
   const directionLine = brief.direction ? [`direction: ${describeDirection(direction)}`] : [];
   say(formatDurations(tl, only), `total ${clock(tl.total)} (${tl.total}s), captions ${caps} groups, sfx ${sfx}`, ...directionLine, ...warnings.slice(0, 20).map((w) => `warn: ${w}`));
+}
+
+// After a successful render: this video joins the history. A history file that cannot be written is reported, not fatal.
+function recordInHistory(root) {
+  try {
+    const { brief, scenes } = loadProject(root);
+    const sources = scenes.map((s) => templateSource(root, s.type));
+    recordRender(recordOf({ root, brief, scenes, sources, direction: resolveDirection(brief.direction) }), historyPaths().history);
+    return "history: recorded";
+  } catch (e) {
+    return `history: not recorded (${e.message})`;
+  }
 }
 
 function script() {
@@ -234,21 +263,26 @@ async function main() {
       const root = project();
       const f = projectFiles(root);
       const r = lintAndCheck(root);
+      const outcome = checkOutcome(r, loadProject(root).scenes);
       const sheet = contactSheet(root, readJson(f.timeline), flag(argv, "mid") ? "mid" : "end");
-      return say(r.text, `contact sheet: ${sheet.out}`);
+      if (outcome.failed) process.exitCode = 1;
+      return say(...outcome.lines, `contact sheet: ${sheet.out}`);
     }
     case "render": {
       const root = project();
       const { f, brief } = loadProject(root);
       const tl = readJson(f.timeline);
-      return say(render(root, brief, tl, { quality: flag(argv, "quality", brief.quality ?? "standard"), workers: Number(flag(argv, "workers", 5)), out: flag(argv, "out"), mixOnly: argv.includes("--mix-only") }));
+      const result = render(root, brief, tl, { quality: flag(argv, "quality", brief.quality ?? "standard"), workers: Number(flag(argv, "workers", 5)), out: flag(argv, "out"), mixOnly: argv.includes("--mix-only") });
+      return say(result, recordInHistory(root));
     }
+    case "history":
+      return say(...historyReport(project()));
     case "script":
       return script();
     case "status":
       return status();
     default:
-      say("usage: node demo.mjs <setup|init|theme|theme-from-site|voices|samples|plan|narrate|sfx|music|build|check|render|script|status> [project] [--options]");
+      say("usage: node demo.mjs <setup|init|theme|theme-from-site|voices|samples|plan|narrate|sfx|music|build|check|render|script|status|history> [project] [--options]");
   }
 }
 

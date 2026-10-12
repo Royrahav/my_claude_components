@@ -1,6 +1,7 @@
 // Quality gates with compact output: lint + check (errors, lint warnings) and one contact-sheet image.
 import { existsSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { isClose, isSummary } from "./house-style.mjs";
 import { loadTheme } from "./theme.mjs";
 import { ensureDir, ffmpeg, hf, projectFiles, r3 } from "./util.mjs";
 
@@ -31,6 +32,20 @@ export function summarizeCheck(out) {
     passed,
     failureLines: failureLines.slice(0, 25),
   };
+}
+
+// The ending rule: a summary scene second to last, the close last. Null when it holds, else the reason.
+export function endingProblem(scenes) {
+  const [summary, close] = scenes.length >= 2 ? scenes.slice(-2) : [];
+  const label = (scene) => (scene ? `${scene.id} ${scene.type}` : "none");
+  if (!summary || !isSummary(summary)) return `ending rule: the second-to-last scene (${label(summary)}) must be a summary (a recap, or summary: true)`;
+  return isClose(close) ? null : `ending rule: the last scene (${label(close)}) must be a close`;
+}
+
+// What `D check` reports and whether it failed: the lint and check text, then the ending rule's verdict.
+export function checkOutcome(lintResult, scenes) {
+  const ending = endingProblem(scenes);
+  return { lines: [lintResult.text, ...(ending ? [`check: FAILED - ${ending}`] : [])], failed: !lintResult.ok || Boolean(ending) };
 }
 
 export function lintAndCheck(root) {

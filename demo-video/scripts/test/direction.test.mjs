@@ -142,7 +142,7 @@ for (const [label, bad] of [["UnknownName", "slide"], ["EmptyList", []], ["ListW
 
 test("resolveDirection_unknownField_throwsNamingItAndTheKnownFields", () => {
   assert.throws(() => resolveDirection({ transition: "fade" }), {
-    message: 'brief.json direction has an unknown field "transition" (known: preset, mood, motif, pacing, motion, chrome, background, captions, transitions)',
+    message: 'brief.json direction has an unknown field "transition" (known: preset, mood, motif, tone, freedom, notes, pacing, motion, chrome, background, captions, transitions)',
   });
 });
 

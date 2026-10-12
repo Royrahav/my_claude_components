@@ -13,7 +13,10 @@ const MIXED = ["push", "push", "fade", "fade", "zoom"]; // repeating a name weig
 // How long each entrance overlaps the outgoing scene; a cut is instant.
 export const TRANSITION_SECONDS = Object.freeze({ push: 0.5, zoom: 0.45, fade: 0.6 });
 const KNOB_FIELDS = [...Object.keys(KNOB_VALUES), "transitions"];
-const FIELDS = ["preset", "mood", "motif", ...KNOB_FIELDS];
+// Creative fields that change no visual: tone sets the voice delivery, freedom and notes steer the writer.
+export const TONES = Object.freeze(["playful", "light", "balanced", "serious", "critical"]);
+const FREEDOMS = ["guided", "creative", "auteur"];
+const FIELDS = ["preset", "mood", "motif", "tone", "freedom", "notes", ...KNOB_FIELDS];
 
 // The original look: what a brief without a direction renders.
 export const DEFAULT_DIRECTION = Object.freeze({
@@ -39,13 +42,14 @@ export function resolveDirection(direction) {
   assertKnownFields(direction);
   const knobs = { ...DEFAULT_DIRECTION, ...presetKnobs(direction.preset), ...explicitKnobs(direction) };
   for (const [knob, allowed] of Object.entries(KNOB_VALUES)) assertOneOf(`direction.${knob}`, knobs[knob], allowed);
-  return { ...knobs, transitions: transitionMix(knobs.transitions) };
+  return { ...knobs, transitions: transitionMix(knobs.transitions), ...creativeFields(direction) };
 }
 
 // One compact line for the build output.
 export function describeDirection(direction) {
-  const { pacing, motion, chrome, background, captions, transitions } = direction;
-  return `pacing ${pacing}, motion ${motion}, chrome ${chrome}, background ${background}, captions ${captions}, transitions ${[...new Set(transitions)].join("/")}`;
+  const { pacing, motion, chrome, background, captions, transitions, tone, freedom } = direction;
+  const creative = [tone && `, tone ${tone}`, freedom && `, freedom ${freedom}`].filter(Boolean).join("");
+  return `pacing ${pacing}, motion ${motion}, chrome ${chrome}, background ${background}, captions ${captions}, transitions ${[...new Set(transitions)].join("/")}${creative}`;
 }
 
 // How each scene enters: its own `transition`, else a fade into the last scene, else a deal from the mix.
@@ -73,6 +77,15 @@ function presetKnobs(preset) {
 // The knobs the direction sets itself; a null knob counts as unset.
 function explicitKnobs(direction) {
   return Object.fromEntries(KNOB_FIELDS.filter((name) => direction[name] != null).map((name) => [name, direction[name]]));
+}
+
+// tone, freedom and notes appear in the result only when set; a null counts as unset, like a null knob.
+function creativeFields(direction) {
+  const { tone, freedom, notes } = direction;
+  if (tone != null) assertOneOf("direction.tone", tone, TONES);
+  if (freedom != null) assertOneOf("direction.freedom", freedom, FREEDOMS);
+  if (notes != null && typeof notes !== "string") throw new Error(`brief.json direction.notes must be a string, got ${JSON.stringify(notes)}`);
+  return Object.fromEntries(Object.entries({ tone, freedom, notes }).filter(([, value]) => value != null));
 }
 
 function assertOneOf(field, value, allowed) {

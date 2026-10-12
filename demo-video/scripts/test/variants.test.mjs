@@ -69,6 +69,8 @@ const OFFERED = {
   bullets: ["default", "list"],
   statement: ["default", "full-bleed"],
   recap: ["default", "cards"],
+  close: ["default", "punchline", "cta", "callback", "sting"],
+  beat: ["default", "invert"],
   pipeline: ["default", "vertical"],
 };
 const offeredBy = (type) => OFFERED[type] ?? ["default"];
@@ -94,6 +96,7 @@ test("scenesDoc_namesEveryVariantATemplateOffers", () => {
 
 // default layouts stay byte-identical ---------------------------------------------------------------
 
+// (The recap digest was updated when summary scenes gained their "Summary" label.)
 // sha256 prefixes of each template's composition plus its sound cues, built from golden-scenes.json before
 // layout variants existed. A changed digest means the default layout changed: if that is intended, rebuild
 // a real project before and after, compare compositions/ and index.html, then update the digest.
@@ -110,7 +113,7 @@ const DEFAULT_DIGESTS = {
   code: "26215d7db5fc98d4",
   bullets: "77bfc5af3b067c30",
   statement: "449cc7074b026238",
-  recap: "14082360c1258c5b",
+  recap: "b4d70c0f4d631b7a",
   close: "aa60a70d77e5d88e",
 };
 

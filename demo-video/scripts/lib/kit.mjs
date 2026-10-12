@@ -4,6 +4,7 @@
 // Ids/classes are prefixed with the scene id.
 
 import { DEFAULT_DIRECTION, TRANSITION_SECONDS } from "./direction.mjs";
+import { isSummary } from "./house-style.mjs";
 import { rgba, themeVars } from "./theme.mjs";
 
 export const ICONS = {
@@ -53,8 +54,8 @@ const BAND = { top: 150, titleTop: 240, bottom: 860 };
 // overshooting eases. `to` is a template's own choreography (glides, the close's fade-out), so it keeps
 // its duration and any ease the template passes; only its default ease follows the motion.
 const MOTION = {
-  calm: { durationScale: 1, eases: { rise: "power3.out", pop: "back.out(1.6)", slide: "power3.out", fade: "power2.out", grow: "power3.out", draw: "power2.inOut", to: "power2.out", count: "power2.out" } },
-  lively: { durationScale: 0.75, eases: { rise: "back.out(1.7)", pop: "back.out(2.2)", slide: "back.out(1.5)", fade: "power3.out", grow: "back.out(1.6)", draw: "expo.out", to: "power3.out", count: "expo.out" } },
+  calm: { durationScale: 1, eases: { rise: "power3.out", pop: "back.out(1.6)", slide: "power3.out", fade: "power2.out", grow: "power3.out", draw: "power2.inOut", to: "power2.out", count: "power2.out", punch: "power4.out" } },
+  lively: { durationScale: 0.75, eases: { rise: "back.out(1.7)", pop: "back.out(2.2)", slide: "back.out(1.5)", fade: "power3.out", grow: "back.out(1.6)", draw: "expo.out", to: "power3.out", count: "expo.out", punch: "expo.out" } },
 };
 
 // direction.background: the canvas plus an optional layer that drifts (grid dots, or soft theme-tinted
@@ -84,6 +85,12 @@ export function createScene({ id, theme, fontsCss, brief, scene, duration, direc
   const k = {
     id, p, css, html, js, sfx, duration, theme, brief, scene, direction,
     esc,
+    // The text of a required template field; a missing or blank one stops the build, naming the field.
+    need(d, field, label) {
+      const value = d[field];
+      if (value == null || String(value).trim() === "") throw new Error(`${id}: ${label} needs data.${field}`);
+      return String(value);
+    },
     hasLogo: Boolean(theme.logo),
     // Top y that vertically centers a block of height h in the free band (ending at `bottom`).
     centeredTop(h, { title = false, bottom = BAND.bottom } = {}) {
@@ -114,6 +121,8 @@ export function createScene({ id, theme, fontsCss, brief, scene, duration, direc
     pop: (s, t, dur = 0.45) => tw(`tl.fromTo("${sel(s)}",{opacity:0,scale:0.7},{opacity:1,scale:1,duration:${scaled(dur)},ease:"${eases.pop}"},${f2(t)});`),
     slide: (s, t, dx = -40, dur = 0.55) => tw(`tl.fromTo("${sel(s)}",{opacity:0,x:${dx}},{opacity:1,x:0,duration:${scaled(dur)},ease:"${eases.slide}"},${f2(t)});`),
     fade: (s, t, dur = 0.5) => tw(`tl.fromTo("${sel(s)}",{opacity:0},{opacity:1,duration:${scaled(dur)},ease:"${eases.fade}"},${f2(t)});`),
+    // A big entrance: starts oversized and slams to size.
+    punch: (s, t, dur = 0.5) => tw(`tl.fromTo("${sel(s)}",{opacity:0,scale:1.45},{opacity:1,scale:1,duration:${scaled(dur)},ease:"${eases.punch}"},${f2(t)});`),
     grow: (s, t, dur = 0.7) => tw(`tl.fromTo("${sel(s)}",{opacity:0,scale:0.92},{opacity:1,scale:1,duration:${scaled(dur)},ease:"${eases.grow}"},${f2(t)});`),
     draw: (s, t, dur = 0.6) => tw(`tl.fromTo("${sel(s)}",{scaleX:0},{scaleX:1,duration:${scaled(dur)},ease:"${eases.draw}"},${f2(t)});`),
     drawY: (s, t, dur = 0.6) => tw(`tl.fromTo("${sel(s)}",{scaleY:0},{scaleY:1,duration:${scaled(dur)},ease:"${eases.draw}"},${f2(t)});`),
@@ -177,15 +186,25 @@ export function baseCss(k) {
 .${p("col")}{display:flex;flex-direction:column;gap:14px}`;
 }
 
+const SUMMARY_LABEL = "Summary";
+
 // The chrome a scene shows: none when its template opts out (`chrome: false`); otherwise direction.chrome
-// keeps the eyebrow and the chapter tag (full), only the tag (minimal), or neither (none).
+// keeps the eyebrow and the chapter tag (full), only the tag (minimal), or neither (none). A summary scene
+// always shows its "Summary" label, in the chapter tag's place, whatever the direction or template says.
 function chromeParts(k, templateChrome, eyebrow) {
+  if (isSummary(k.scene)) return summaryParts(k, templateChrome, eyebrow);
   if (!templateChrome) return [];
   const level = k.direction.chrome;
   return [
     level === "full" && { name: "eyebrow", text: eyebrow },
     level !== "none" && k.scene.chapter && { name: "tag", text: k.scene.chapter },
   ].filter(Boolean);
+}
+
+function summaryParts(k, templateChrome, eyebrow) {
+  const label = { name: "tag", text: String(k.scene.summary_label ?? "").trim() || SUMMARY_LABEL, summary: true };
+  const showEyebrow = templateChrome && k.direction.chrome === "full";
+  return [showEyebrow && { name: "eyebrow", text: eyebrow }, label].filter(Boolean);
 }
 
 // A crossfade shows both scenes at once, each with its chrome in the same corners, so the incoming chrome
@@ -198,7 +217,8 @@ export function wrap(k, { fontsCss, chrome = true, eyebrow, entrance = null }) {
   const p = k.p;
   const D = f2(k.duration);
   const parts = chromeParts(k, chrome, eyebrow);
-  const chromeHtml = parts.map(({ name, text }) => `<div id="${p(name)}" class="${p(name)}">${esc(text)}</div>`).join("");
+  const chromeHtml = parts.map(({ name, text, summary }) => `<div id="${p(name)}" class="${p(name)}${summary ? ` ${p("summary")}` : ""}">${esc(text)}</div>`).join("");
+  const summaryCss = parts.some((part) => part.summary) ? `.${p("summary")}{top:46px;font-size:27px;padding:14px 32px;color:var(--on-accent);background:var(--accent-text)}` : "";
   if (parts.length) {
     k.js.unshift(`tl.fromTo([${parts.map(({ name }) => `"#${p(name)}"`).join(",")}],{opacity:0,y:8},{opacity:1,y:0,duration:0.4,ease:"power3.out"},${chromeStart(entrance)});`);
   }
@@ -208,7 +228,7 @@ export function wrap(k, { fontsCss, chrome = true, eyebrow, entrance = null }) {
 <style>
 ${fontsCss}
 ${baseCss(k)}
-${k.css.join("\n")}
+${k.css.join("\n")}${summaryCss ? `\n${summaryCss}` : ""}
 </style>
 <div id="root" data-composition-id="${k.id}" data-start="0" data-duration="${D}" data-width="1920" data-height="1080">
 <div id="${p("bg")}" class="clip ${p("bg")}" data-start="0" data-duration="${D}" data-track-index="0">${layer ? `<div id="${p(layer)}" class="${p(layer)}"></div>` : ""}</div>

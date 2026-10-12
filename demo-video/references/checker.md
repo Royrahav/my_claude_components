@@ -18,6 +18,8 @@ a revision changed.
    but must add no capability, number, customer, version or behavior beyond FACTS.md. A hypothetical phrased as an example ("For
    example, ...") that only applies facts from FACTS.md passes. Flag one that states an invented
    scenario as something that happened, or that implies a capability FACTS.md does not have.
+5. Jokes, metaphors and analogies pass when they imply no capability, number, customer or behavior
+   beyond FACTS.md. Flag one that does.
 
 ## Report
 

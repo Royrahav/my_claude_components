@@ -1,6 +1,6 @@
 # demo-video
 
-A Claude Code skill that turns a feature, bug fix or release into a finished, narrated demo
+A Claude Code and Cursor skill that turns a feature, bug fix or release into a finished, narrated demo
 video (1920x1080 MP4). You give Claude the context; it asks a few questions, shows you the script,
 then produces the video. Each video has:
 - animated, on-brand scenes built with HyperFrames;
@@ -27,13 +27,18 @@ bespoke signature scene.
 
 The key is stored only on your machine, in `~/.config/demo-video/.env`.
 
+Cursor: it reads skills from `~/.claude/skills`, so the folder above works as is; or put it in
+`~/.cursor/skills/demo-video`. `D setup` also installs the two helpers into `~/.cursor/agents/`
+when `~/.cursor` exists (`--host claude|cursor|both` overrides, `--cursor-model <id>` picks their
+model). Cursor-specific notes are in `references/hosts.md`.
+
 ## Use
 
 Say what you want and point at the sources:
 
 > Make a 3-minute demo video for LAB-1234. The code is in this repo, PR 56; the spec is docs/spec.md.
 
-Claude researches the sources and asks about length, audience, look and extras, each with a
+Claude researches the sources and asks about length, audience, tone and look, each with a
 recommended answer. You approve the script and pick a voice, and it renders. Ask for changes in
 plain words: "slower voice", "dark theme", "shorten the intro", "louder music", "fix how it
 says labOS". Each change re-does only what it has to.
@@ -49,6 +54,14 @@ font and a logo.
 Within the theme, each video gets its own structure and style, designed from what it explains:
 Claude proposes a style (calm and technical, energetic, story-driven or minimal) with the script,
 and builds at least one scene designed only for that video.
+
+Your say: pick a tone (from playful to critical; it also sets how the voice delivers), and after
+the research Claude asks a few focus questions (the core message, what to cut, what viewers should
+do next) so a big topic condenses well. Give your own art direction in words ("retro terminal")
+and it outranks the presets; choose "Artist's cut" for more creative license. Lasting preferences
+("never underline") are kept in `~/.config/demo-video/taste.md`, and recent videos in
+`history.jsonl` there, so the next video differs from the last. Every video ends with a labeled
+Summary, then a closing scene whose form varies.
 
 ## Cost
 

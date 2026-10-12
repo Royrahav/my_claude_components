@@ -13,7 +13,9 @@ target length and a Constraints line.
 One research run spent about 224k tokens building and running the code against a fake binary.
 Reading is enough:
 - Read only. Never build, run, install or test anything.
-- Aim for about 25 tool calls. Read descriptions and diffs before whole files.
+- Depth scales with the topic. One ticket or PR: about 25 tool calls, FACTS.md up to 150 lines. A
+  large topic (an epic, a release, several tickets, an architecture): up to about 45 calls, up to
+  200 lines. Read descriptions and diffs before whole files.
 - Stop once every FACTS.md section is filled or marked "not in sources".
 - The Constraints line is binding.
 
@@ -41,13 +43,22 @@ Reading is enough:
 
 ## FACTS.md format
 
-Use at most 150 lines. Bullets only. Use plain hyphens, never em or en dashes. End each fact with
+Use at most 150 lines (200 for a large topic). Bullets only. Use plain hyphens, never em or en dashes. End each fact with
 a short source tag: `[repo:path]`, `[PR 12]`, `[CL 123456]`, `[JIRA-123]`, `[doc:name]`.
 
 ```
 # <Feature name> - facts
 ## One-liner
 What it is, for whom, and why it matters, in one sentence.
+## Angles
+2-4 candidate storylines for this audience, ranked, one line each:
+`<core message> | why this audience cares | facts it rests on`. The first is recommended.
+## Hooks
+3-5 vivid, surprising or human facts (a striking number, a pain quote, a stark before/after, a
+person who hit the problem), each sourced.
+## Scope
+`<N> distinct ideas found; about <M> fit <length>` (M: about 90 s core + 2 ideas, 3 min core + 3, 5 min core + 4), then cut candidates, lowest value first:
+`cut: ... | mention only: ...`. When the target length is an assumption, say so here.
 ## Problem before
 ## Approach and decision
 What was chosen, the alternatives considered, and why they lost.
@@ -72,4 +83,4 @@ Product names, acronyms and how to say them, terms a non-engineer needs glossed.
 Only what the user must decide or confirm: version, naming, emphasis, conflicts found.
 ```
 
-Reply to the caller with one line: the FACTS.md path, the number of facts and the number of open questions.
+Reply to the caller with one line: the FACTS.md path, the number of facts, the number of angles, `fits` or `over by <n> ideas`, and the number of open questions.

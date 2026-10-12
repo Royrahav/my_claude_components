@@ -29,8 +29,7 @@ the final look: a render made before them goes stale with their first fix.
      wording or pronunciation problem: writer.md, Revision.
    - Em or en dash in scenes.json: replace each with a comma, or with a plain hyphen inside a
      range or a compound.
-   - `warn: house style:` (the summary ending, a recap's items, no signature scene, or repeated
-     templates or transitions): writer.md, Revision.
+   - `warn: house style:` (any of them): writer.md, Revision lists each fix.
 2. Then re-voice once. The speed fit re-voices every scene, the fixed ones included, so it comes
    after the fixes and runs at most once:
    - The build total is more than 5% away from `length_s` (brief.json): run `D plan .`, which
@@ -45,6 +44,8 @@ the final look: a render made before them goes stale with their first fix.
 
 - `check: FAILED` with lint errors or contrast lines: troubleshooting.md (a custom theme usually
   needs darker `muted` and `light` colors), then build and check again.
+- `check: FAILED` on the ending rule: SKILL.md, Changes (a new video: fix it; an existing one: ask
+  first, and if the user declines, render as is and say check fails only on that rule).
 - Layout failures from check (overflow, overlap): the layout review, qa.md.
 - Content changes (wording, claims, scene order or scene types): writer.md, Revision.
 - ElevenLabs errors:
@@ -68,6 +69,7 @@ Never work around a failing line: fix its cause at that step.
 | another transition | scenes.json scene `transition`: push, zoom, fade or cut; `D build .`, `D check .` |
 | another style: calmer, livelier, captions, background, chrome, pacing | brief.json `direction` (scenes.md, Creative direction); `D build .`, `D check .`; after a pacing change also `D music .` |
 | another theme | `D theme . --use labos` (or neutral, midnight), `D build .`, `D check .` |
+| a custom brand | `D theme-from-site <url>` prints a guess at colors and fonts. Write `theme/theme.json`: name, mode (light or dark), colors {canvas, surface, ink, muted, light, accent, accent2, danger; each hex `#RGB` or `#RRGGBB`}, fonts {display, body, mono} (Google Fonts families), logo (a file in theme/, SVG preferred; omit it for a text-only lockup), music_prompt. Copy the logo into `theme/`, run `D theme .`, then `D build .`, `D check .`. Text colors are darkened to pass WCAG AA, so brand colors work as given. |
 
 Then the render step: `D render .`, or `D render . --mix-only` after an audio-only change (music
 or its level): it reuses the last picture and redoes only the audio mix.

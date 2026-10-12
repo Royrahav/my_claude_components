@@ -3,7 +3,7 @@
 // retired ones; the shipped agents and docs are checked against the contract SKILL.md relies on.
 import { test, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -215,4 +215,15 @@ test("skillDocs_containNoEmOrEnDashes", () => {
   const withDashes = skillDocs().filter((file) => emOrEnDash.test(readFileSync(file, "utf8")));
 
   assert.deepEqual(withDashes, []);
+});
+
+const SKILL_MD_MAX_BYTES = 14500;
+const WRITER_PLUS_SCENES_MAX_BYTES = 36000;
+const sizeOf = (...parts) => statSync(join(...parts)).size;
+
+test("skillDocs_stayWithinByteCeilings", () => {
+  const skillMd = sizeOf(SKILL_ROOT, "SKILL.md");
+  const writerAndScenes = sizeOf(REFERENCES_DIR, "writer.md") + sizeOf(REFERENCES_DIR, "scenes.md");
+
+  assert.deepEqual([skillMd <= SKILL_MD_MAX_BYTES, writerAndScenes <= WRITER_PLUS_SCENES_MAX_BYTES], [true, true]);
 });

@@ -14,6 +14,7 @@ import { buildTimeline, holdFor, makeCue, silentSeconds } from "./lib/timeline.m
 import { createScene, wrap } from "./lib/kit.mjs";
 import { writeCaptions } from "./lib/captions.mjs";
 import { writeIndex } from "./lib/assemble.mjs";
+import { mainLayers, writeLayerFiles } from "./lib/layers.mjs";
 import { checkOutcome, contactSheet, lintAndCheck } from "./lib/check.mjs";
 import { render } from "./lib/render.mjs";
 import { USER_AGENTS_DIR, cursorHome, cursorSkillDiscovery, hostsFor, installAgents, installCursorAgents } from "./lib/agents.mjs";
@@ -169,7 +170,10 @@ async function build() {
   const caps = brief.captions !== false ? writeCaptions(root, tl, theme, fontsCss, direction.captions) : 0;
   const sfxOn = brief.sfx !== false && existsSync(join(f.sfx, "pop.mp3"));
   if (brief.sfx !== false && !sfxOn) warnings.push("SFX files missing: run `sfx` (or set brief.sfx false)");
-  const { sfx } = writeIndex(root, tl, scenes, sceneSfx, { canvas: theme.colors.canvas, captions: brief.captions !== false, sfxOn, transitions });
+  const layers = mainLayers({ direction, theme, tl, scenes, transitions });
+  warnings.push(...layers.warnings);
+  writeLayerFiles(f.comps, layers);
+  const { sfx } = writeIndex(root, tl, scenes, sceneSfx, { canvas: theme.colors.canvas, captions: brief.captions !== false, sfxOn, transitions, layers });
   const dashes = JSON.stringify(scenes).match(/[\u2013\u2014]/g);
   if (dashes) warnings.push(`${dashes.length} em/en dash characters in scenes.json (house style: plain hyphens)`);
   warnings.push(...houseStyleWarnings(scenes, { sources, transitions, durations: tl.scenes.map((s) => s.duration) }));

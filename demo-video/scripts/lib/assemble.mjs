@@ -4,6 +4,7 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { TRANSITION_SECONDS, enteringTransitions } from "./direction.mjs";
+import { NO_LAYERS } from "./layers.mjs";
 import { r3 } from "./util.mjs";
 
 const SFX_FILE = { whoosh: "whoosh", click: "click", pop: "pop", chime: "chime", typing: "typing" };
@@ -18,8 +19,9 @@ function transitionJs(type, oldSel, newSel, T, D) {
 }
 
 // `transitions[i]` is how scene i enters (enteringTransitions); without it, push in and fade into the last.
-export function writeIndex(root, tl, scenes, sceneSfx, { canvas, captions, sfxOn, transitions = enteringTransitions(scenes) }) {
-  const body = [];
+// `layers` (mainLayers) mounts the persistent world behind the scenes and the rail above them.
+export function writeIndex(root, tl, scenes, sceneSfx, { canvas, captions, sfxOn, transitions = enteringTransitions(scenes), layers = NO_LAYERS }) {
+  const body = [...layers.back];
   const js = [];
   const sfx = [];
   let voiceClips = 0;
@@ -47,6 +49,7 @@ export function writeIndex(root, tl, scenes, sceneSfx, { canvas, captions, sfxOn
     body.push(`<audio id="el-sfx-${i}" src="assets/sfx/${f}.mp3" data-start="${x.t}" data-duration="1.6" data-track-index="${20 + i}" data-volume="${x.volume ?? 0.5}"></audio>`);
   });
   if (captions) body.push(`<div id="el-captions" data-composition-id="captions" data-composition-src="compositions/captions.html" data-start="0" data-duration="${tl.total}" data-track-index="2" data-track-kind="captions" data-width="1920" data-height="1080"></div>`);
+  body.push(...layers.front);
 
   const html = `<!doctype html>
 <html lang="en">

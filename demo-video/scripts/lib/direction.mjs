@@ -5,7 +5,7 @@ const KNOB_VALUES = {
   pacing: ["measured", "brisk", "relaxed"],
   motion: ["calm", "lively"],
   chrome: ["full", "minimal", "none"],
-  background: ["grid", "plain", "soft"],
+  background: ["grid", "plain", "soft", "world"],
   captions: ["pill", "lower", "minimal"],
 };
 const TRANSITIONS = ["push", "fade", "zoom", "cut"];
@@ -16,7 +16,8 @@ const KNOB_FIELDS = [...Object.keys(KNOB_VALUES), "transitions"];
 // Creative fields that change no visual: tone sets the voice delivery, freedom and notes steer the writer.
 export const TONES = Object.freeze(["playful", "light", "balanced", "serious", "critical"]);
 const FREEDOMS = ["guided", "creative", "auteur"];
-const FIELDS = ["preset", "mood", "motif", "tone", "freedom", "notes", ...KNOB_FIELDS];
+export const RAIL_VALUES = Object.freeze(["off", "on"]);
+const FIELDS = ["preset", "mood", "motif", "tone", "freedom", "notes", "thread", "rail", ...KNOB_FIELDS];
 
 // The original look: what a brief without a direction renders.
 export const DEFAULT_DIRECTION = Object.freeze({
@@ -47,8 +48,8 @@ export function resolveDirection(direction) {
 
 // One compact line for the build output.
 export function describeDirection(direction) {
-  const { pacing, motion, chrome, background, captions, transitions, tone, freedom } = direction;
-  const creative = [tone && `, tone ${tone}`, freedom && `, freedom ${freedom}`].filter(Boolean).join("");
+  const { pacing, motion, chrome, background, captions, transitions, tone, freedom, rail, thread } = direction;
+  const creative = [tone && `, tone ${tone}`, freedom && `, freedom ${freedom}`, rail && `, rail ${rail}`, thread && `, thread ${JSON.stringify(thread)}`].filter(Boolean).join("");
   return `pacing ${pacing}, motion ${motion}, chrome ${chrome}, background ${background}, captions ${captions}, transitions ${[...new Set(transitions)].join("/")}${creative}`;
 }
 
@@ -79,13 +80,20 @@ function explicitKnobs(direction) {
   return Object.fromEntries(KNOB_FIELDS.filter((name) => direction[name] != null).map((name) => [name, direction[name]]));
 }
 
-// tone, freedom and notes appear in the result only when set; a null counts as unset, like a null knob.
+// tone, freedom, notes, thread and rail appear in the result only when set (so the original look resolves
+// unchanged); a null counts as unset, like a null knob. thread is the running example every scene returns to.
 function creativeFields(direction) {
-  const { tone, freedom, notes } = direction;
+  const { tone, freedom, notes, thread, rail } = direction;
   if (tone != null) assertOneOf("direction.tone", tone, TONES);
   if (freedom != null) assertOneOf("direction.freedom", freedom, FREEDOMS);
-  if (notes != null && typeof notes !== "string") throw new Error(`brief.json direction.notes must be a string, got ${JSON.stringify(notes)}`);
-  return Object.fromEntries(Object.entries({ tone, freedom, notes }).filter(([, value]) => value != null));
+  if (rail != null) assertOneOf("direction.rail", rail, RAIL_VALUES);
+  assertText("notes", notes);
+  assertText("thread", thread);
+  return Object.fromEntries(Object.entries({ tone, freedom, notes, thread, rail }).filter(([, value]) => value != null));
+}
+
+function assertText(name, value) {
+  if (value != null && typeof value !== "string") throw new Error(`brief.json direction.${name} must be a string, got ${JSON.stringify(value)}`);
 }
 
 function assertOneOf(field, value, allowed) {
@@ -126,7 +134,7 @@ function shuffled(list, seed) {
 }
 
 // mulberry32: a small deterministic generator of floats in [0, 1).
-function seededRandom(seed) {
+export function seededRandom(seed) {
   let state = seed >>> 0;
   return () => {
     state = (state + 0x6d2b79f5) >>> 0;

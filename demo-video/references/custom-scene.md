@@ -35,6 +35,14 @@ is the scene's `data`.
   - Other: `to(id, t, props, dur?, ease?)`, `count(id, value, t, dur?, decimals?, comma?)`, `flip(toggleId, t)`.
   - `direction.motion: "lively"` shortens the reveals and gives them livelier eases on its own;
     `to` keeps your duration and any ease you pass.
+- **Effects for signature scenes** (seek-safe; call them on a cue):
+  - `glow(id, t, {color?, size?, dur?})`: a neon pulse on an element as it lands. Leave room for the
+    shadow: do not clip it with `overflow:hidden`.
+  - `sparks({x, y}, t, {count?, spread?, color?, dur?})`: a seeded particle burst from a point of the
+    1920x1080 frame. The same call draws the same burst on every build; never use `Math.random`.
+  - `camera(stageId, t, {focus: {x, y}, zoom?, dur?})`: pans and zooms your own full-frame stage
+    element (`position:absolute;inset:0`) so `focus` lands at the frame center; call it with no
+    `focus` to pull back to the full picture. Put the content to move inside that stage.
 - **Sound and ambience:** `k.sound("whoosh" | "click" | "pop" | "chime" | "typing", t, volume?)`.
   End with `k.ambient()`: it drifts the direction's background layer (none on `plain`) and pushes
   the camera from scale 1 to 1.02, so the contact sheet shows edge content about 17 px further

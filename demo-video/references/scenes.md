@@ -37,6 +37,7 @@ structure:
 - **Final before/after**: `split`, the old way beside the new.
 - **Checklist**: `bullets` or `cards`, one item per thing to remember or check.
 - **"What to do now" card**: `cards` or `statement`, the next action for each audience.
+- **Zoom-out**: the whole picture reassembled, on a signature scene (visuals.md).
 
 Any template can be the summary: set `"summary": true` on the scene (a `recap` always is one).
 Build warns and `D check` fails without it. A summary scene shows an accent "Summary" label
@@ -58,8 +59,9 @@ without `direction`, the video keeps the original look (the first value of each 
   scene's own `hold` is kept.
 - `motion`: `calm` (as built) or `lively` (quicker reveals with a slight overshoot).
 - `chrome`: `full` (eyebrow and chapter tag), `minimal` (the chapter tag only) or `none`.
-- `background`: `grid` (dotted grid with drift), `plain` (the canvas only) or `soft` (faint
-  theme-tinted glows).
+- `background`: `grid` (dotted grid with drift), `plain` (the canvas only), `soft` (faint
+  theme-tinted glows) or `world` (one persistent layer, visuals.md).
+- `rail`: `off` or `on` (a chapter progress rail, visuals.md). `thread` (text): the running example.
 - `captions`: `pill`, `lower` (a full-width band at the bottom) or `minimal` (text only, on the
   canvas).
 - `tone` (`playful`, `light`, `balanced`, `serious`, `critical`) sets the voice delivery (a change

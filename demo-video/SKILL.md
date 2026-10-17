@@ -207,7 +207,7 @@ Built in: `labos` (company default: light, teal, Comfortaa + Montserrat), `neutr
 
 - Every narrated or on-screen claim is in FACTS.md. Numbers keep their caveat. Status words are
   exact: optional vs required, shipped vs planned, measured on what.
-- One idea per scene, and visuals land on the spoken word.
+- One idea per scene, each following from the last, and visuals land on the spoken word.
 - A structure and a look chosen for this content, at least one signature scene designed only for
   this video, engagement devices picked from the writer.md menu, and an ending that differs from
   the last videos (`D history .`; unless overridden, see writer.md, Art freedom).

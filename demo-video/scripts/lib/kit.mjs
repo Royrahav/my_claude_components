@@ -3,7 +3,7 @@
 // HyperFrames sub-composition shape. The video's direction picks the background, chrome and motion.
 // Ids/classes are prefixed with the scene id.
 
-import { DEFAULT_DIRECTION, TRANSITION_SECONDS } from "./direction.mjs";
+import { DEFAULT_DIRECTION, TRANSITION_SECONDS, seededRandom } from "./direction.mjs";
 import { isSummary } from "./house-style.mjs";
 import { rgba, themeVars } from "./theme.mjs";
 
@@ -68,7 +68,14 @@ const BACKGROUNDS = {
     css: (p) => `.${p("glow")}{position:absolute;inset:-60px;background:radial-gradient(48% 58% at 0% 0%,var(--tint2),transparent),radial-gradient(50% 60% at 100% 100%,var(--tint2),transparent),radial-gradient(40% 50% at 0% 100%,var(--ntint),transparent),radial-gradient(70% 55% at 60% 0%,var(--surface),transparent 70%)}`,
   },
   plain: { layer: null, css: () => "" },
+  // The video's own persistent layer (index.html) shows through, so the scene paints no canvas of its own.
+  world: { layer: null, css: () => "", transparent: true },
 };
+
+// Tuning of the signature-scene effects.
+const GLOW = { size: 44, alpha: 0.6, seconds: 0.9 };
+const SPARKS = { count: 10, spread: 130, seconds: 0.8, size: 10 };
+const CAMERA = { zoom: 1.35, seconds: 0.9, centerX: 960, centerY: 540 };
 
 export function createScene({ id, theme, fontsCss, brief, scene, duration, direction = DEFAULT_DIRECTION }) {
   const p = (n) => `${id}-${n}`;
@@ -81,6 +88,8 @@ export function createScene({ id, theme, fontsCss, brief, scene, duration, direc
   const { durationScale, eases } = MOTION[direction.motion];
   const scaled = (seconds) => (durationScale === 1 ? seconds : f2(seconds * durationScale));
   const backgroundLayer = BACKGROUNDS[direction.background].layer;
+  let sparkBursts = 0;
+  const cameraStates = new Map();
 
   const k = {
     id, p, css, html, js, sfx, duration, theme, brief, scene, direction,
@@ -138,6 +147,40 @@ export function createScene({ id, theme, fontsCss, brief, scene, duration, direc
       tw(`tl.fromTo("#${p(eid)}",{backgroundColor:"${rgba(theme.colors.ink, 0.12)}"},{backgroundColor:"${theme.colors.accent}",duration:${scaled(0.35)},ease:"power2.inOut"},${f2(t)});`);
     },
     sound: (name, t, volume) => sfx.push({ sound: name, t: f2(Math.max(0, t)), volume }),
+    // A neon pulse on an element that just landed: a glow swells, then fades (the element should not clip it).
+    glow(s, t, { color = theme.colors.accent, size = GLOW.size, dur = GLOW.seconds } = {}) {
+      const off = `0 0 0px 0px ${rgba(color, 0)}`;
+      const peak = `0 0 ${size}px ${f2(size / 4)}px ${rgba(color, GLOW.alpha)}`;
+      const half = f2(scaled(dur) / 2);
+      tw(`tl.fromTo("${sel(s)}",{boxShadow:"${off}"},{boxShadow:"${peak}",duration:${half},ease:"power2.out",immediateRender:false},${f2(t)});`);
+      tw(`tl.fromTo("${sel(s)}",{boxShadow:"${peak}"},{boxShadow:"${off}",duration:${half},ease:"power2.in",immediateRender:false},${f2(t) + half});`);
+    },
+    // A burst of particles from a point {x, y} of the 1920x1080 scene. Seeded by the burst and the point, so
+    // every build and every seek draws the same burst.
+    sparks(at, t, { count = SPARKS.count, spread = SPARKS.spread, color = theme.colors.accent, dur = SPARKS.seconds } = {}) {
+      const burst = sparkBursts++;
+      const random = seededRandom(burst * 7919 + Math.round(at.x) * 31 + Math.round(at.y));
+      if (burst === 0) css.push(`.${p("spark")}{position:absolute;width:${SPARKS.size}px;height:${SPARKS.size}px;margin:-${SPARKS.size / 2}px 0 0 -${SPARKS.size / 2}px;border-radius:50%;opacity:0}`);
+      const rise = f2(scaled(dur) * 0.25);
+      for (let n = 0; n < count; n++) {
+        const angle = ((n + random()) / count) * Math.PI * 2;
+        const reach = spread * (0.55 + random() * 0.45);
+        const [x, y] = [Math.round(Math.cos(angle) * reach), Math.round(Math.sin(angle) * reach)];
+        const eid = `sp${burst}_${n}`;
+        html.push(`<i id="${p(eid)}" class="${p("spark")}" style="left:${Math.round(at.x)}px;top:${Math.round(at.y)}px;background:${color}"></i>`);
+        tw(`tl.fromTo("#${p(eid)}",{opacity:0,scale:0.4,x:0,y:0},{opacity:1,scale:1,x:${Math.round(x / 2)},y:${Math.round(y / 2)},duration:${rise},ease:"power2.out"},${f2(t)});`);
+        tw(`tl.fromTo("#${p(eid)}",{opacity:1,scale:1,x:${Math.round(x / 2)},y:${Math.round(y / 2)}},{opacity:0,scale:0.2,x:${x},y:${y},duration:${f2(scaled(dur) - rise)},ease:"power1.in",immediateRender:false},${f2(t) + rise});`);
+      }
+    },
+    // A camera move inside the scene: pans and zooms the element `s` (your own stage wrapper around the content)
+    // so that `focus` {x, y} lands at the center of the frame; no focus pulls back to the full picture.
+    camera(s, t, { focus, zoom = CAMERA.zoom, dur = CAMERA.seconds } = {}) {
+      const to = focus ? { x: CAMERA.centerX - focus.x * zoom, y: CAMERA.centerY - focus.y * zoom, scale: zoom } : { x: 0, y: 0, scale: 1 };
+      const from = cameraStates.get(s) ?? { x: 0, y: 0, scale: 1 };
+      const render = cameraStates.has(s) ? ",immediateRender:false" : "";
+      cameraStates.set(s, to);
+      tw(`tl.fromTo("${sel(s)}",{x:${from.x},y:${from.y},scale:${from.scale},transformOrigin:"0 0"},{x:${to.x},y:${to.y},scale:${to.scale},transformOrigin:"0 0",duration:${scaled(dur)},ease:"${eases.draw}"${render}},${f2(t)});`);
+    },
     // The background layer drifts and the camera pushes in slowly; a plain background has no layer.
     ambient(until = duration) {
       if (backgroundLayer) tw(`tl.fromTo("#${p(backgroundLayer)}",{x:0,y:0},{x:-40,y:-20,duration:${f2(until)},ease:"none"},0);`);
@@ -154,10 +197,10 @@ export function baseCss(k) {
   const p = k.p;
   const layerCss = BACKGROUNDS[k.direction.background].css(p);
   return `#root{position:absolute;inset:0;overflow:hidden;font-family:var(--font-body);color:var(--ink);${themeVars(k.theme)}}
-.${p("bg")}{position:absolute;inset:0;background:var(--canvas);overflow:hidden}${layerCss ? `\n${layerCss}` : ""}
+.${p("bg")}{position:absolute;inset:0;background:${BACKGROUNDS[k.direction.background].transparent ? "transparent" : "var(--canvas)"};overflow:hidden}${layerCss ? `\n${layerCss}` : ""}
 .${p("cam")}{position:absolute;inset:0;transform-origin:50% 45%}
 .${p("eyebrow")}{position:absolute;left:96px;top:63px;font:700 19px var(--font-body);letter-spacing:.08em;color:var(--accent-text);text-transform:uppercase}
-.${p("tag")}{position:absolute;right:96px;top:54px;font:700 18px var(--font-body);letter-spacing:.06em;color:var(--accent-text);background:var(--tint2);border-radius:100px;padding:9px 21px;text-transform:uppercase}
+.${p("tag")}{position:absolute;right:96px;top:54px;font:700 18px var(--font-body);letter-spacing:.06em;color:var(--accent-text);background:${BACKGROUNDS[k.direction.background].transparent ? "color-mix(in srgb,var(--accent) 10%,var(--canvas))" : "var(--tint2)"};border-radius:100px;padding:9px 21px;text-transform:uppercase}
 .${p("h2")}{position:absolute;left:96px;top:128px;font:700 58px/1.12 var(--font-display);letter-spacing:-.01em;color:var(--ink);max-width:1600px}
 .${p("ico")}{fill:none;stroke-linecap:round;stroke-linejoin:round;flex:none;display:block}
 .${p("chip")}{display:inline-flex;align-items:center;gap:10px;height:48px;padding:0 22px;border-radius:100px;font:700 22px/1 var(--font-body);white-space:nowrap;box-sizing:border-box;position:relative}

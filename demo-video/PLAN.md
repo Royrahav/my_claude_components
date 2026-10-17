@@ -1,6 +1,6 @@
 # Plan: coherence, logical order and visual effects
 
-Status: approved plan, not implemented. Lane: Standard-feature (dev-flow), RCA not required, PM
+Status: implemented (review PASS after one fix round; 7 low findings left as follow-ups). Lane: Standard-feature (dev-flow), RCA not required, PM
 skipped (no written spec). Developer: Back End Agent.
 
 ## Why

@@ -21,9 +21,18 @@ a revision changed.
 5. Jokes, metaphors and analogies pass when they imply no capability, number, customer or behavior
    beyond FACTS.md. Flag one that does.
 
+## Order pass
+
+6. Read the scenes in order, each adjacent pair (A, B), and flag:
+   - `order`: B does not follow from A (no bridge, a jump to an unrelated idea);
+   - `early term`: B uses a name or term that a later scene introduces;
+   - `open loop`: a question or promise raised in a scene that nothing later pays off.
+   On a revision, check the pairs around the changed scenes.
+
 ## Report
 
 Problems only, at most 20 lines, one per line:
 `sNN: "<text>" - unsupported | overstated | wrong: <why> [source]`
+`sNN-sMM: order | early term | open loop: <why>`
 
 If there are none, reply `no issues`. Nothing else.

@@ -218,7 +218,7 @@ test("skillDocs_containNoEmOrEnDashes", () => {
 });
 
 const SKILL_MD_MAX_BYTES = 14500;
-const WRITER_PLUS_SCENES_MAX_BYTES = 36000;
+const WRITER_PLUS_SCENES_MAX_BYTES = 37000;
 const sizeOf = (...parts) => statSync(join(...parts)).size;
 
 test("skillDocs_stayWithinByteCeilings", () => {

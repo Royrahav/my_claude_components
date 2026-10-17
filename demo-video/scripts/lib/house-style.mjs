@@ -35,6 +35,7 @@ export function houseStyleWarnings(scenes, { sources, transitions, durations = [
     signatureWarning(sources),
     ...backToBackWarnings(scenes),
     ...overusedTemplateWarnings(scenes),
+    ...chapterOrderWarnings(scenes),
     sameTransitionWarning(transitions),
     rhythmWarning(durations),
   ].filter(Boolean);
@@ -73,6 +74,21 @@ function overusedTemplateWarnings(scenes) {
   return [...uses]
     .filter(([, count]) => count > 1 && count > counted.length * MAX_TEMPLATE_SHARE)
     .map(([type, count]) => `house style: ${type} is used in ${count} of ${counted.length} scenes (over ${MAX_TEMPLATE_SHARE * 100}%, close and summary aside); vary the templates`);
+}
+
+// A chapter is one unbroken run: when a label comes back after a different one, the order jumps around.
+// Scenes without a chapter label are skipped, so an unlabelled scene never splits a chapter.
+function chapterOrderWarnings(scenes) {
+  const seen = new Set();
+  let current = null;
+  return scenes.flatMap((scene) => {
+    const label = String(scene.chapter ?? "").trim();
+    if (label === "" || label === current) return [];
+    const returned = seen.has(label);
+    seen.add(label);
+    current = label;
+    return returned ? [`house style: chapter "${label}" reappears at ${scene.id} after another chapter; keep each chapter in one run`] : [];
+  });
 }
 
 // The last scene's entrance is the ending's fade, so only the entrances before it are compared.

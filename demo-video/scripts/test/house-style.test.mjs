@@ -313,3 +313,30 @@ test("houseStyleWarnings_aVideoBreakingEveryRule_listsTheWarningsInRuleOrder", (
 
   assert.deepEqual(warningsFor(scenes, built), [ENDING_WARNING, RECAP_WARNING, SIGNATURE_WARNING, backToBack("s02", "s03", "bullets"), overused("bullets", 3, 6), sameEntrance("cut")]);
 });
+
+// chapters stay in one run ------------------------------------------------------------------------
+
+const chapterWarning = (label, id) => `house style: chapter "${label}" reappears at ${id} after another chapter; keep each chapter in one run`;
+const chapterWarnings = (scenes) => warningsFor(scenes).filter((warning) => warning.includes("reappears"));
+
+test("houseStyleWarnings_chapterReappearsAfterAnotherOne_warnsAtTheReturn", () => {
+  const scenes = scenesOf({ type: "title" }, { type: "split", chapter: "Problem" }, { type: "steps", chapter: "Design" }, { type: "cards", chapter: "Problem" }, "recap", "close");
+
+  assert.deepEqual(chapterWarnings(scenes), [chapterWarning("Problem", "s04")]);
+});
+
+test("houseStyleWarnings_sceneRunSharingAChapter_hasNoChapterWarning", () => {
+  const scenes = scenesOf({ type: "title" }, { type: "split", chapter: "Problem" }, { type: "steps", chapter: "Problem" }, { type: "cards", chapter: "Design" }, "recap", "close");
+
+  assert.deepEqual(chapterWarnings(scenes), []);
+});
+
+test("houseStyleWarnings_unlabelledSceneInsideAChapter_doesNotSplitIt", () => {
+  const scenes = scenesOf({ type: "title" }, { type: "split", chapter: "Problem" }, { type: "beat" }, { type: "steps", chapter: "Problem" }, "recap", "close");
+
+  assert.deepEqual(chapterWarnings(scenes), []);
+});
+
+test("houseStyleWarnings_noChapterLabels_hasNoChapterWarning", () => {
+  assert.deepEqual(chapterWarnings(scenesOf("title", "split", "steps", "recap", "close")), []);
+});

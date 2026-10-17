@@ -120,7 +120,7 @@ for (const [knob, bad, allowed] of [
   ["pacing", "fast", "measured, brisk, relaxed"],
   ["motion", "bouncy", "calm, lively"],
   ["chrome", "half", "full, minimal, none"],
-  ["background", "dots", "grid, plain, soft"],
+  ["background", "dots", "grid, plain, soft, world"],
   ["captions", "karaoke", "pill, lower, minimal"],
 ]) {
   test(`resolveDirection_badValueFor_${knob}_throwsNamingTheKnobAndItsValues`, () => {
@@ -142,7 +142,7 @@ for (const [label, bad] of [["UnknownName", "slide"], ["EmptyList", []], ["ListW
 
 test("resolveDirection_unknownField_throwsNamingItAndTheKnownFields", () => {
   assert.throws(() => resolveDirection({ transition: "fade" }), {
-    message: 'brief.json direction has an unknown field "transition" (known: preset, mood, motif, tone, freedom, notes, pacing, motion, chrome, background, captions, transitions)',
+    message: 'brief.json direction has an unknown field "transition" (known: preset, mood, motif, tone, freedom, notes, thread, rail, pacing, motion, chrome, background, captions, transitions)',
   });
 });
 
@@ -269,4 +269,34 @@ for (const [label, bad] of [["WrongCase", "Fade"], ["EmptyName", ""], ["List", [
 
 test("enteringTransitions_nullSceneTransition_countsAsUnset", () => {
   assert.deepEqual(enteringTransitions(withTransition("s3", null)), enteringTransitions(scenesOf(5)));
+});
+
+// thread and rail -----------------------------------------------------------------------------------------
+
+test("resolveDirection_thread_isKeptAsTheRunningExample", () => {
+  assert.equal(resolveDirection({ thread: "one lab sample" }).thread, "one lab sample");
+});
+
+test("resolveDirection_threadNotText_throwsNamingIt", () => {
+  assert.throws(() => resolveDirection({ thread: 3 }), { message: "brief.json direction.thread must be a string, got 3" });
+});
+
+test("resolveDirection_railOn_isKept", () => {
+  assert.equal(resolveDirection({ rail: "on" }).rail, "on");
+});
+
+test("resolveDirection_railUnknown_throwsNamingItsValues", () => {
+  assert.throws(() => resolveDirection({ rail: "yes" }), { message: 'brief.json direction.rail must be one of off, on, got "yes"' });
+});
+
+test("resolveDirection_railAndThreadUnset_leaveTheOriginalLookUntouched", () => {
+  assert.deepEqual({ ...resolveDirection({ rail: null, thread: null }) }, ORIGINAL_LOOK);
+});
+
+test("resolveDirection_backgroundWorld_isAccepted", () => {
+  assert.equal(resolveDirection({ background: "world" }).background, "world");
+});
+
+test("describeDirection_railAndThread_areAppended", () => {
+  assert.match(describeDirection(resolveDirection({ rail: "on", thread: "a sample" })), /, rail on, thread "a sample"$/);
 });

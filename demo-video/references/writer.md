@@ -15,25 +15,29 @@ they belong to production, after gate 1.
    FACTS.md is the claim whitelist: nothing outside it is said or shown. Run `D history .` (the
    last videos and the taste notes): make this video differ from them in structure (scene-type order; variants don't
    count), close form and preset unless the content demands otherwise, and apply the taste notes.
-2. Design the structure (scenes.md, Designing the structure). Ask what this audience needs first
+2. Pick the spine first; order beats variety. A `direction.thread` (one running example), then
+   `chapter`s in dependency order (one unbroken run each, never revisited), each scene opening
+   with a bridge from the last one's limit ("so we add caching"), no term used before it is
+   introduced.
+3. Design the structure (scenes.md, Designing the structure). Ask what this audience needs first
    and what shape the content has: a journey, a turn, a before/after, a day in someone's work, a
    number, a question, a myth. Pick the pattern, or combine some, that fits. Never reuse one
    order by default: the last video's shape is not a template. Condense (below), drop scenes the
    facts can't fill, and pick the summary form (Summary rule).
-3. Propose a direction (scenes.md, Creative direction): the preset closest to the content's feel,
+4. Propose a direction (scenes.md, Creative direction): the preset closest to the content's feel,
    a motif (the visual idea tied to this feature), a mood, and only the knobs the content asks
-   for beyond the preset. Tone and `notes` are already set (Tone, Art freedom). Write it to
+   for beyond the preset (`rail` and `background: world` suit a chaptered journey: visuals.md). Tone and `notes` are already set (Tone, Art freedom). Write it to
    brief.json `direction`, and rewrite `music_prompt` from the mood: instrumental, no vocals, even
    enough to sit under a voiceover.
-4. Plan the signature scene (below).
-5. Write `scenes.json` in one Write. For each scene, pick the template and the layout variant that fit
+5. Plan the signature scene (below).
+6. Write `scenes.json` in one Write. For each scene, pick the template and the layout variant that fit
    its content (scenes.md, Templates), and vary them: no template and variant back to back, and
    not one look for every scene.
-6. Add `pronunciations.json` entries for names the voice may get wrong: product names,
+7. Add `pronunciations.json` entries for names the voice may get wrong: product names,
    acronyms, versions, config keys.
-7. Run `D plan .` and fit the plan within about 10% of `length_s`: trim or extend `say`, or drop
+8. Run `D plan .` and fit the plan within about 10% of `length_s`: trim or extend `say`, or drop
    or add a scene. It is an estimate until narrate measures the real voice.
-8. Run `D script .` (writes SCRIPT.md).
+9. Run `D script .` (writes SCRIPT.md).
 
 Open questions from FACTS.md: use the user's answers so far (the focus interview), and assume the
 recommended option for the rest. Only one that changes the story goes to gate 1.
@@ -74,7 +78,9 @@ A menu, not a checklist: pick 3-5 that fit this content, varying from the last v
 ## Art freedom
 
 Precedence, highest first: hard rules (FACTS.md, summary, legibility, captions, length, the
-user's constraints); the creator's `notes` and taste notes; `freedom`; the preset; house-style warnings.
+user's constraints, and each scene following from the last: Script 2); the creator's `notes` and
+taste notes; `freedom`; the preset; house-style warnings. Variety (a new structure, no repeated
+template, history warnings) never overrides the order.
 `direction.freedom`:
 - `guided`: built-in templates, one signature scene, cheapest.
 - `creative` (default): designed per content, 1-2 signature scenes.
@@ -135,6 +141,7 @@ structure: <pattern, or patterns combined> | <why it fits, a few words>
 s01 title: <the narration> | on screen: <one line>
 s02 split: <the narration> | on screen: <one line>
 ...
+spine: <thread> | <chapter, chapter, ...>
 style: <preset>, <knobs changed, or none> | motif: <the visual idea> | mood: <the feel>
 tone: <level> | freedom: <level> | notes: <yes/none>
 engagement: <devices picked>
@@ -161,9 +168,11 @@ a layout problem that needs new wording, or a `house style:` build warning:
    - every scene entering the same way: give `direction.transitions` a mix, or set a scene's
      `transition`;
    - close variant as the last video's: another variant (Close forms); scene sequence as a recent
-     video's: restructure (Script 2); preset and tone as the last video's: another preset;
+     video's: restructure (Script 3); preset and tone as the last video's: another preset;
      monotone rhythm: add a `beat` or lengthen a showcase.
-   History warnings yield to the creator's notes, taste notes and `auteur` (Art freedom).
+   - a chapter reappearing after another: reorder so each chapter is one run, or rename it.
+   History warnings yield to the creator's notes, taste notes and `auteur` (Art freedom), and to
+   the order (Script 2): never reorder scenes to look different.
 2. Run `D plan .` and `D script .`.
 3. Note the scenes whose `say` or pronunciation changed: after gate 1 they need `D narrate .`,
    which re-voices only those. Note the scenes whose claims or on-screen text changed: they need

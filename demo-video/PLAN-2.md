@@ -50,7 +50,7 @@ empty; some layouts also stay sparse when fully revealed (s13: two small stats).
 7. Pinned running example (`direction.thread_pin: on`): a persistent layer (like the rail) showing
    a small pill with the running example (placed at the top center, accepted 2026-10-18) that does
    not collide with the rail, tag, captions or content band. A scene may set `pin` (text) to rewrite it from that scene on (for example
-   `smb://srvfs1/Reception` after Normalize), with a short morph; it hides on the title, summary and
+   `smb://printsrv/Office` after Normalize), with a short morph; it hides on the title, summary and
    close.
 
 ## Validation (each milestone)

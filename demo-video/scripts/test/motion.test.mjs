@@ -164,7 +164,7 @@ test("flow_lineMissingOrNotEmpty_throwsNamingIt", () => {
 const SCENES = [
   { id: "s1", type: "title" },
   { id: "s2", type: "split", chapter: "A" },
-  { id: "s3", type: "steps", chapter: "B", pin: "smb://srvfs1/Reception" },
+  { id: "s3", type: "steps", chapter: "B", pin: "smb://printsrv/Office" },
   { id: "s4", type: "cards", chapter: "B" },
   { id: "s5", type: "recap", chapter: "Recap" },
   { id: "s6", type: "close" },
@@ -197,7 +197,7 @@ test("mainLayers_threadPin_mountsAboveTheRailTrackAndHoldsBothTexts", () => {
   const layers = pinFor({ thread_pin: "on", thread: "one job", rail: "on" });
 
   assert.match(layers.front.find((host) => host.includes("layer-pin")), /data-track-index="5"/);
-  assert.ok(layers.files.pin.includes("one job") && layers.files.pin.includes("smb://srvfs1/Reception"));
+  assert.ok(layers.files.pin.includes("one job") && layers.files.pin.includes("smb://printsrv/Office"));
 });
 
 test("mainLayers_pinBlankOrTooLong_throwsNamingTheScene", () => {

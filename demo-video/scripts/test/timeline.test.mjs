@@ -20,7 +20,7 @@ afterEach(() => rmSync(root, { recursive: true, force: true }));
 // holdFor -------------------------------------------------------------------------------------------
 
 test("defaultHold_perTemplate_isUnchanged", () => {
-  assert.deepEqual(DEFAULT_HOLD, { title: 3.0, close: 4.0, metrics: 2.2, statement: 2.0, recap: 2.0, options: 1.8, states: 1.8, decision: 1.6, beat: 0.8 });
+  assert.deepEqual(DEFAULT_HOLD, { title: 3.0, close: 4.0, metrics: 2.2, statement: 2.0, recap: 2.0, options: 1.8, states: 1.8, decision: 1.6, beat: 0.8, "iso-journey": 3.0, "iso-map": 2.0 });
 });
 
 // Every built-in default, plus a template without one (a project template, say).

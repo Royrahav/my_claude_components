@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { LEAD, ensureDir, ffmpeg, lufs, r3, readJson, writeJson, duration as probe } from "./util.mjs";
 
 const VOICE_LUFS = -18;
-export const DEFAULT_HOLD = { title: 3.0, close: 4.0, metrics: 2.2, statement: 2.0, recap: 2.0, options: 1.8, states: 1.8, decision: 1.6, beat: 0.8 };
+export const DEFAULT_HOLD = { title: 3.0, close: 4.0, metrics: 2.2, statement: 2.0, recap: 2.0, options: 1.8, states: 1.8, decision: 1.6, beat: 0.8, "iso-journey": 3.0, "iso-map": 2.0 };
 // A layout variant can hold differently from its template ("template/variant"): the sting is a short sign-off.
 const VARIANT_HOLD = { "close/sting": 1.5 };
 const OTHER_HOLD = 1.4;
@@ -97,5 +97,7 @@ export function makeCue(sceneTl, warnings) {
   // n evenly spaced fallback times across the narration window
   const spread = (n, from = first, to = last) =>
     Array.from({ length: n }, (_, i) => r3(n === 1 ? from : from + ((to - from) * i) / (n - 1)));
-  return { cue, spread, first, last, duration: sceneTl.duration };
+  // A template's note about its own timing (a cue it had to move): the build prints it.
+  const warn = (message) => warnings.push(`${sceneTl.id}: ${message}`);
+  return { cue, spread, warn, first, last, duration: sceneTl.duration };
 }

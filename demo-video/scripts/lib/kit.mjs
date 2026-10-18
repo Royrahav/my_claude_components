@@ -116,6 +116,9 @@ export function createScene({ id, theme, fontsCss, brief, scene, duration, direc
   const k = {
     id, p, css, html, js, sfx, duration, theme, brief, scene, direction,
     esc,
+    // Records that element `s` shows from `t`, without tweening it: for a reveal the template animates itself
+    // (the 3D kit scales and drops its elements; fading a preserve-3d element would flatten it).
+    revealAt: (s, t) => appearAt(s, t),
     // The text of a required template field; a missing or blank one stops the build, naming the field.
     need(d, field, label) {
       const value = d[field];

@@ -1,7 +1,6 @@
 # Writing scenes.json
 
-Contents: designing the structure, summary forms, creative direction, words and timing, writing
-rules, scene fields, cues, the 14 templates (fields, layout variants, a tested example each).
+Contents: structure, summary forms, direction, timing, rules, scene fields, cues, the 14 templates.
 
 ## Designing the structure
 
@@ -62,6 +61,7 @@ without `direction`, the video keeps the original look (the first value of each 
 - `background`: `grid` (dotted grid with drift), `plain` (the canvas only), `soft` (faint
   theme-tinted glows) or `world` (one persistent layer, visuals.md).
 - `rail`: `off` or `on` (a chapter progress rail, visuals.md). `thread` (text): the running example.
+- `chapter_intro` (`on`), `reveal` (`blueprint`): fill the wait before the first cue (visuals.md).
 - `captions`: `pill`, `lower` (a full-width band at the bottom) or `minimal` (text only, on the
   canvas).
 - `tone` (`playful`, `light`, `balanced`, `serious`, `critical`) sets the voice delivery (a change
@@ -121,6 +121,7 @@ Scene fields:
   below); defaults to `default`. An unknown name stops the build and lists the valid ones.
 - `hold?`: seconds held after the speech (defaults: title 3, close 4, metrics 2.2, statement and
   recap 2, options and states 1.8, decision 1.6, beat 0.8, close with `sting` 1.5, others 1.4; the direction's pacing scales them).
+- `backdrop?`: a faint huge word behind the content (visuals.md).
 - `transition?`: how this scene enters: `push`, `zoom`, `fade` or `cut`. By default it comes from
   the direction's `transitions` (push without one), and the last scene fades in. An unknown name
   stops the build and lists the valid ones.

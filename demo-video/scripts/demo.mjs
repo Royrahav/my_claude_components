@@ -11,7 +11,9 @@ import { CONFIG_PATH, HF, LEAD, SKILL_DIR, apiKey, clock, config, defaultBrief, 
 import { brandFromSite, fontCss, installFonts, loadTheme } from "./lib/theme.mjs";
 import { STOCK_VOICES, ensureSfx, measuredWps, music, narrate, rateFor, samples, voiceById } from "./lib/voice.mjs";
 import { buildTimeline, holdFor, makeCue, silentSeconds } from "./lib/timeline.mjs";
-import { createScene, wrap } from "./lib/kit.mjs";
+import { chromeStart, createScene, wrap } from "./lib/kit.mjs";
+import { planChapterIntro, startsChapter } from "./lib/fillers.mjs";
+import { emptyScreenWarnings } from "./lib/screen-gaps.mjs";
 import { writeCaptions } from "./lib/captions.mjs";
 import { writeIndex } from "./lib/assemble.mjs";
 import { mainLayers, writeLayerFiles } from "./lib/layers.mjs";
@@ -149,6 +151,7 @@ async function build() {
   const sfxMapPath = join(root, ".demo", "sfx.json");
   const sceneSfx = only && existsSync(sfxMapPath) ? readJson(sfxMapPath) : {};
   ensureDir(f.comps);
+  const screenWarnings = [];
   for (const [i, s] of scenes.entries()) {
     if (only && !only.has(s.id)) continue;
     const stl = tl.scenes[i];
@@ -163,7 +166,9 @@ async function build() {
     const tpl = templateFor(await import(pathToFileURL(tplPath).href), s);
     const k = createScene({ id: s.id, theme, fontsCss, brief, scene: s, duration: stl.duration, direction });
     const res = tpl(k, s.data ?? {}, makeCue(stl, warnings)) ?? {};
-    writeFileSync(join(f.comps, `${s.id}.html`), wrap(k, { fontsCss, chrome: res.chrome !== false, eyebrow: brief.eyebrow ?? brief.product, entrance: transitions[i] }));
+    const intro = chapterIntroPlan({ direction, scenes, i, k, entrance: transitions[i], warnings });
+    writeFileSync(join(f.comps, `${s.id}.html`), wrap(k, { fontsCss, chrome: res.chrome !== false, eyebrow: brief.eyebrow ?? brief.product, entrance: transitions[i], intro }));
+    screenWarnings.push(...emptyScreenWarnings({ id: s.id, scene: s, intervals: k.visibleIntervals(), duration: stl.duration }));
     sceneSfx[s.id] = k.sfx;
   }
   writeJson(sfxMapPath, sceneSfx);
@@ -178,8 +183,19 @@ async function build() {
   if (dashes) warnings.push(`${dashes.length} em/en dash characters in scenes.json (house style: plain hyphens)`);
   warnings.push(...houseStyleWarnings(scenes, { sources, transitions, durations: tl.scenes.map((s) => s.duration) }));
   warnings.push(...safeHistoryWarnings(recordOf({ root, brief, scenes, sources, direction }), historyPaths().history));
+  warnings.push(...screenWarnings); // last: only the first 20 warnings print, and the house-style ones matter more
   const directionLine = brief.direction ? [`direction: ${describeDirection(direction)}`] : [];
   say(formatDurations(tl, only), `total ${clock(tl.total)} (${tl.total}s), captions ${caps} groups, sfx ${sfx}`, ...directionLine, ...warnings.slice(0, 20).map((w) => `warn: ${w}`));
+}
+
+// The chapter intro's timing for scene i (direction.chapter_intro "on", the scene opens a chapter), or null; a
+// scene whose first content cue leaves no room for it is skipped with a warning.
+function chapterIntroPlan({ direction, scenes, i, k, entrance, warnings }) {
+  if (direction.chapter_intro !== "on" || !startsChapter(scenes, i)) return null;
+  const firstCue = k.firstContentCue();
+  const plan = planChapterIntro({ start: chromeStart(entrance), firstCue });
+  if (!plan) warnings.push(`${scenes[i].id}: chapter intro skipped (the first content cue at ${r2(firstCue)} s leaves no room)`);
+  return plan;
 }
 
 // After a successful render: this video joins the history. A history file that cannot be written is reported, not fatal.

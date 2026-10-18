@@ -4,6 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createScene } from "../lib/kit.mjs";
+import { resolveDirection } from "../lib/direction.mjs";
 import { makeCue } from "../lib/timeline.mjs";
 import close, { FADE_OUT, variants } from "../lib/scenes/close.mjs";
 import { THEME, sceneTimeline, tweensOf } from "./helpers.mjs";
@@ -290,3 +291,35 @@ test("closeDefault_fourTaglines_throwsTheNamedErrorAndThreeAreAccepted", () => {
 test("closeDefault_taglineNotAList_throwsTheNamedError", () => {
   assert.throws(() => build(close, { title: "T", tagline: "one" }), /data.tagline/);
 });
+
+// the ref over the persistent world ----------------------------------------------------------------------
+
+function worldBuild(template, data) {
+  const k = createScene({ id: "s1", theme: THEME, fontsCss: "", brief: {}, scene: {}, duration: 12, direction: resolveDirection({ background: "world" }) });
+  template(k, data, makeCue(sceneTimeline({ duration: 12 }), []));
+  return { html: k.html.join("\n"), css: k.css.join("\n") };
+}
+const pxIn = (css, selector, prop) => Number(css.match(new RegExp(String.raw`${selector}\{[^}]*?${prop}:(-?[\d.]+)px`))[1]);
+
+for (const [name, template] of [["default", close], ["punchline", variants.punchline]]) {
+  const data = { title: "T", line: "L", tagline: ["One."], ref: "Ref: LAB-1" };
+
+  test(`close_${name}_refOverTheWorld_hasAnOpaqueCanvasPatchBehindTheWholeRefBox`, () => {
+    const { html, css } = worldBuild(template, data);
+    const patch = { left: pxIn(css, "\.s1-refbg", "left"), top: pxIn(css, "\.s1-refbg", "top"), width: pxIn(css, "\.s1-refbg", "width"), height: pxIn(css, "\.s1-refbg", "height") };
+    const box = { left: pxIn(css, "#s1-ref", "left"), width: pxIn(css, "#s1-ref", "width"), top: pxIn(css, "\.s1-ref", "top"), height: 28 };
+    const opaqueShare = Number(css.match(/radial-gradient\(closest-side,var\(--canvas\) (\d+)%/)[1]) / 100;
+    const reach = (x, y) => Math.hypot((x - (patch.left + patch.width / 2)) / (patch.width / 2), (y - (patch.top + patch.height / 2)) / (patch.height / 2));
+    const farthestCorner = Math.max(...[box.left, box.left + box.width].flatMap((x) => [box.top, box.top + box.height].map((y) => reach(x, y))));
+
+    assert.ok(html.indexOf("s1-refbg") < html.indexOf('id="s1-ref"'));
+    assert.ok(farthestCorner <= opaqueShare);
+    assert.ok(patch.width < 960);
+  });
+
+  test(`close_${name}_refWithoutTheWorld_hasNoPatch`, () => {
+    const { html, css } = build(template, data);
+
+    assert.deepEqual([html.includes("refbg"), css.includes("refbg")], [false, false]);
+  });
+}

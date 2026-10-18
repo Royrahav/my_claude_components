@@ -18,7 +18,7 @@ const isCompleteRecapItem = (item) => !isBlank(item?.title) && !isBlank(item?.ex
 export const isSummary = (scene) => scene.type === "recap" || scene.summary === true;
 export const isClose = (scene) => scene.type === "close";
 // A beat is punctuation, so it is not counted as a template use (it still may not repeat back to back).
-const isBeat = (scene) => scene.type === "beat";
+export const isBeat = (scene) => scene.type === "beat";
 
 function isCompleteRecap(scene) {
   const items = Array.isArray(scene.data?.items) ? scene.data.items : [];

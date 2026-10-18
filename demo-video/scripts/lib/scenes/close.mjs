@@ -40,7 +40,7 @@ export default function close(k, d, c) {
     })
     .join("");
   html.push(`<div class="${p("lock")}">${logo}<div id="${p("t1")}" class="${p("t1")}">${k.esc(d.title)}</div><div class="${p("tagl")}">${spans}</div></div>`);
-  if (d.ref) html.push(`<div id="${p("ref")}" class="${p("ref")}">${k.esc(d.ref)}</div>`);
+  if (d.ref) html.push(refHtml(k, d, DEFAULT_REF_TOP));
 
   if (logo) k.grow("logo", 0.3, 0.8);
   k.rise("t1", 0.7, 24, 0.7);
@@ -66,6 +66,10 @@ const WORD_STEP = { min: 0.12, max: 0.4 };
 const CALLBACK_GAP = 1.4; // the answer lands at least this long after the hook
 const DIMMED_HOOK = 0.4;
 
+const DEFAULT_REF_TOP = 790; // the default variant's ref line; the other variants share SHARED_REF_TOP
+const SHARED_REF_TOP = 810;
+const REF_PATCH = { charPx: 12, minWidth: 320, height: 110, boxHeight: 28, textShare: 0.6, opaquePercent: 70 };
+
 // What every variant shares: a small logo top left, an optional ref line near the bottom, the ambient
 // drift, the fade to the canvas and the close's chime.
 const smallLogoCss = (p) => `.${p("slogo")}{position:absolute;left:96px;top:56px;height:56px;max-width:260px;object-fit:contain;object-position:left center}
@@ -73,7 +77,20 @@ const smallLogoCss = (p) => `.${p("slogo")}{position:absolute;left:96px;top:56px
 
 const smallLogo = (k, d) => (k.hasLogo && d.logo !== false ? `<img id="${k.p("slogo")}" class="${k.p("slogo")}" src="theme/${k.theme.logo}" alt="">` : "");
 
-const refHtml = (k, d) => (d.ref ? `<div id="${k.p("ref")}" class="${k.p("ref")}">${k.esc(d.ref)}</div>` : "");
+const refHtml = (k, d, top = SHARED_REF_TOP) => (d.ref ? `${refPatch(k, d, top)}<div id="${k.p("ref")}" class="${k.p("ref")}">${k.esc(d.ref)}</div>` : "");
+
+// The ref is small light text whose contrast has no room to spare. On the persistent world (background "world") its
+// orbs can tint the canvas behind it, so the ref gets its own patch of plain canvas, feathered at the edge, and its box
+// shrinks to the text so the checker samples only that patch (the box is otherwise the full width). The world stays
+// visible everywhere else. Nothing changes for other backgrounds.
+function refPatch(k, d, top) {
+  if (k.direction.background !== "world") return "";
+  const box = Math.ceil(d.ref.length * REF_PATCH.charPx);
+  const width = Math.max(REF_PATCH.minWidth, Math.ceil(box / REF_PATCH.textShare));
+  k.css.push(`#${k.p("ref")}{left:${960 - box / 2}px;right:auto;width:${box}px;white-space:nowrap}`);
+  k.css.push(`.${k.p("refbg")}{position:absolute;left:${960 - width / 2}px;top:${top + REF_PATCH.boxHeight / 2 - REF_PATCH.height / 2}px;width:${width}px;height:${REF_PATCH.height}px;background:radial-gradient(closest-side,var(--canvas) ${REF_PATCH.opaquePercent}%,transparent)}`);
+  return `<div class="${k.p("refbg")}"></div>`;
+}
 
 // A reveal time, moved earlier when it would land too close to the fade-out.
 const settler = (c, margin = REVEAL_MARGIN) => (t) => Math.min(t, Math.max(0.2, c.duration - FADE_OUT - margin));

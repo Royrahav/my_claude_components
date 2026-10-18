@@ -4,7 +4,8 @@
 // Ids/classes are prefixed with the scene id.
 
 import { DEFAULT_DIRECTION, TRANSITION_SECONDS, seededRandom } from "./direction.mjs";
-import { isSummary } from "./house-style.mjs";
+import { backdropParts, chapterIntroParts } from "./fillers.mjs";
+import { isBeat, isSummary } from "./house-style.mjs";
 import { rgba, themeVars } from "./theme.mjs";
 
 export const ICONS = {
@@ -76,6 +77,12 @@ const BACKGROUNDS = {
 const GLOW = { size: 44, alpha: 0.6, seconds: 0.9 };
 const SPARKS = { count: 10, spread: 130, seconds: 0.8, size: 10 };
 const CAMERA = { zoom: 1.35, seconds: 0.9, centerX: 960, centerY: 540 };
+// direction.reveal "blueprint": a cued element waits as a faint ghost (opacity only) until its cue. The
+// ghost stays under 0.2, the opacity below which HyperFrames' layout audit treats an element as not there, so a
+// ghost never counts as text overlapping the chapter intro or another element.
+const GHOST = { opacity: 0.18 };
+// The headline rises at a fixed time, not on a spoken cue, so it does not set when the first content cue is.
+const HEADLINE = "h";
 
 export function createScene({ id, theme, fontsCss, brief, scene, duration, direction = DEFAULT_DIRECTION }) {
   const p = (n) => `${id}-${n}`;
@@ -90,6 +97,23 @@ export function createScene({ id, theme, fontsCss, brief, scene, duration, direc
   const backgroundLayer = BACKGROUNDS[direction.background].layer;
   let sparkBursts = 0;
   const cameraStates = new Map();
+  const blueprint = direction.reveal === "blueprint" && !isBeat(scene ?? {});
+  const shown = []; // what the kit reveals: { target, from (visible from), cue (revealed at) }
+  const exits = []; // { target, at }: a `to` that fades an element out
+  const fills = []; // { from, until }: what fills the screen without being revealed content (backdrop, intro)
+  // Opacity reveals: hidden until the cue, or, in blueprint, a ghost that fills in on the cue. `ghost: false` keeps an
+  // element hidden until its cue even in blueprint: for elements that take each other's place (the title's kickers).
+  const appear = (s, t, { from = "", to = "", dur, ease, ghost = true }) => {
+    const target = sel(s);
+    const ghosted = blueprint && ghost;
+    shown.push({ target, from: ghosted ? 0 : f2(t), cue: f2(t) });
+    const list = (...parts) => parts.filter(Boolean).join(",");
+    const start = list(`opacity:${ghosted ? GHOST.opacity : 0}`, from);
+    const end = list("opacity:1", to, `duration:${scaled(dur)}`, `ease:"${ease}"`);
+    tw(`tl.fromTo("${target}",{${start}},{${end}},${f2(t)});`);
+  };
+  // Reveals that are not opacity fades (a line drawing, text typing) show an element from their cue.
+  const appearAt = (s, t) => shown.push({ target: sel(s), from: f2(t), cue: f2(t) });
 
   const k = {
     id, p, css, html, js, sfx, duration, theme, brief, scene, direction,
@@ -126,17 +150,29 @@ export function createScene({ id, theme, fontsCss, brief, scene, duration, direc
     },
 
     // motion vocabulary (fromTo everywhere: seek-safe, hidden before the reveal)
-    rise: (s, t, dy = 22, dur = 0.55) => tw(`tl.fromTo("${sel(s)}",{opacity:0,y:${dy}},{opacity:1,y:0,duration:${scaled(dur)},ease:"${eases.rise}"},${f2(t)});`),
-    pop: (s, t, dur = 0.45) => tw(`tl.fromTo("${sel(s)}",{opacity:0,scale:0.7},{opacity:1,scale:1,duration:${scaled(dur)},ease:"${eases.pop}"},${f2(t)});`),
-    slide: (s, t, dx = -40, dur = 0.55) => tw(`tl.fromTo("${sel(s)}",{opacity:0,x:${dx}},{opacity:1,x:0,duration:${scaled(dur)},ease:"${eases.slide}"},${f2(t)});`),
-    fade: (s, t, dur = 0.5) => tw(`tl.fromTo("${sel(s)}",{opacity:0},{opacity:1,duration:${scaled(dur)},ease:"${eases.fade}"},${f2(t)});`),
+    rise: (s, t, dy = 22, dur = 0.55, opts) => appear(s, t, { from: `y:${dy}`, to: "y:0", dur, ease: eases.rise, ...opts }),
+    pop: (s, t, dur = 0.45, opts) => appear(s, t, { from: "scale:0.7", to: "scale:1", dur, ease: eases.pop, ...opts }),
+    slide: (s, t, dx = -40, dur = 0.55, opts) => appear(s, t, { from: `x:${dx}`, to: "x:0", dur, ease: eases.slide, ...opts }),
+    fade: (s, t, dur = 0.5, opts) => appear(s, t, { dur, ease: eases.fade, ...opts }),
     // A big entrance: starts oversized and slams to size.
-    punch: (s, t, dur = 0.5) => tw(`tl.fromTo("${sel(s)}",{opacity:0,scale:1.45},{opacity:1,scale:1,duration:${scaled(dur)},ease:"${eases.punch}"},${f2(t)});`),
-    grow: (s, t, dur = 0.7) => tw(`tl.fromTo("${sel(s)}",{opacity:0,scale:0.92},{opacity:1,scale:1,duration:${scaled(dur)},ease:"${eases.grow}"},${f2(t)});`),
-    draw: (s, t, dur = 0.6) => tw(`tl.fromTo("${sel(s)}",{scaleX:0},{scaleX:1,duration:${scaled(dur)},ease:"${eases.draw}"},${f2(t)});`),
-    drawY: (s, t, dur = 0.6) => tw(`tl.fromTo("${sel(s)}",{scaleY:0},{scaleY:1,duration:${scaled(dur)},ease:"${eases.draw}"},${f2(t)});`),
-    type: (s, t, dur = 0.9) => tw(`tl.fromTo("${sel(s)}",{clipPath:"inset(0 100% 0 0)"},{clipPath:"inset(0 0% 0 0)",duration:${scaled(dur)},ease:"steps(24)"},${f2(t)});`),
-    to: (s, t, props, dur = 0.5, ease = eases.to) => tw(`tl.to("${sel(s)}",Object.assign(${JSON.stringify(props)},{duration:${dur},ease:"${ease}"}),${f2(t)});`),
+    punch: (s, t, dur = 0.5, opts) => appear(s, t, { from: "scale:1.45", to: "scale:1", dur, ease: eases.punch, ...opts }),
+    grow: (s, t, dur = 0.7, opts) => appear(s, t, { from: "scale:0.92", to: "scale:1", dur, ease: eases.grow, ...opts }),
+    draw(s, t, dur = 0.6) {
+      appearAt(s, t);
+      tw(`tl.fromTo("${sel(s)}",{scaleX:0},{scaleX:1,duration:${scaled(dur)},ease:"${eases.draw}"},${f2(t)});`);
+    },
+    drawY(s, t, dur = 0.6) {
+      appearAt(s, t);
+      tw(`tl.fromTo("${sel(s)}",{scaleY:0},{scaleY:1,duration:${scaled(dur)},ease:"${eases.draw}"},${f2(t)});`);
+    },
+    type(s, t, dur = 0.9) {
+      appearAt(s, t);
+      tw(`tl.fromTo("${sel(s)}",{clipPath:"inset(0 100% 0 0)"},{clipPath:"inset(0 0% 0 0)",duration:${scaled(dur)},ease:"steps(24)"},${f2(t)});`);
+    },
+    to(s, t, props, dur = 0.5, ease = eases.to) {
+      if (props.opacity === 0) exits.push({ target: sel(s), at: f2(t + dur) });
+      tw(`tl.to("${sel(s)}",Object.assign(${JSON.stringify(props)},{duration:${dur},ease:"${ease}"}),${f2(t)});`);
+    },
     // No immediateRender: the HTML already shows 0, and the linter files all proxy counters as one target.
     count(eid, to, t, dur = 1.0, decimals = 0, comma = false) {
       tw(`(function(){var o={v:0},el=document.getElementById("${p(eid)}");tl.fromTo(o,{v:0},{v:${to},duration:${scaled(dur)},ease:"${eases.count}",immediateRender:false,onUpdate:function(){var s=o.v.toFixed(${decimals});${comma ? 's=s.replace(/\\B(?=(\\d{3})+(?!\\d))/g,",");' : ""}el.textContent=s;}},${f2(t)});})();`);
@@ -186,9 +222,17 @@ export function createScene({ id, theme, fontsCss, brief, scene, duration, direc
       if (backgroundLayer) tw(`tl.fromTo("#${p(backgroundLayer)}",{x:0,y:0},{x:-40,y:-20,duration:${f2(until)},ease:"none"},0);`);
       tw(`tl.fromTo("#${p("cam")}",{scale:1},{scale:1.02,duration:${f2(until)},ease:"none"},0);`);
     },
+    // When the scene shows something beyond its background and chrome: each revealed element from its reveal (from
+    // the scene start when it waits as a blueprint ghost) until a template fades it out, plus the fillers.
+    visibleIntervals: () => [...shown.map(({ target, from }) => ({ from, until: exitAfter(exits, target, from) })), ...fills],
+    // The first spoken-cue reveal: the headline's fixed-time rise is not one.
+    firstContentCue: () => Math.min(duration, ...shown.filter(({ target }) => target !== sel(HEADLINE)).map(({ cue }) => cue)),
+    fills,
   };
   return k;
 }
+
+const exitAfter = (exits, target, from) => exits.find((x) => x.target === target && x.at > from)?.at ?? Infinity;
 
 const toneVar = (tone) =>
   ({ accent: "accent-text", good: "accent-text", navy: "accent2-text", bad: "danger-text", neutral: "muted", plain: "ink" })[tone] ?? "accent-text";
@@ -252,33 +296,46 @@ function summaryParts(k, templateChrome, eyebrow) {
 
 // A crossfade shows both scenes at once, each with its chrome in the same corners, so the incoming chrome
 // waits until the outgoing scene has faded out.
-const chromeStart = (entrance) => (entrance === "fade" ? TRANSITION_SECONDS.fade : 0);
+export const chromeStart = (entrance) => (entrance === "fade" ? TRANSITION_SECONDS.fade : 0);
+
+// The chrome fades in together; with a chapter intro the tag waits until the intro lands in its corner.
+function chromeFadeIns(p, parts, start, tagAt) {
+  const fade = (names, at) => names.length > 0 && `tl.fromTo([${names.map((name) => `"#${p(name)}"`).join(",")}],{opacity:0,y:8},{opacity:1,y:0,duration:0.4,ease:"power3.out"},${at});`;
+  const names = parts.map(({ name }) => name);
+  if (tagAt == null) return [fade(names, start)].filter(Boolean);
+  return [fade(names.filter((name) => name !== "tag"), start), fade(["tag"].filter((name) => names.includes(name)), tagAt)].filter(Boolean);
+}
 
 // Wraps a built scene into the HyperFrames sub-composition fragment. `entrance` is how the scene enters
-// (enteringTransitions); null for the first scene.
-export function wrap(k, { fontsCss, chrome = true, eyebrow, entrance = null }) {
+// (enteringTransitions); null for the first scene. `intro` is the chapter intro's plan (planChapterIntro), or null.
+export function wrap(k, { fontsCss, chrome = true, eyebrow, entrance = null, intro = null }) {
   const p = k.p;
   const D = f2(k.duration);
   const parts = chromeParts(k, chrome, eyebrow);
+  const tagShown = parts.some(({ name }) => name === "tag");
+  const introParts = intro && chapterIntroParts({ p, text: String(k.scene.chapter).trim(), plan: intro, tagShown, theme: k.theme, esc });
+  const backdrop = backdropParts({ id: k.id, p, scene: k.scene, theme: k.theme, duration: D, esc });
   const chromeHtml = parts.map(({ name, text, summary }) => `<div id="${p(name)}" class="${p(name)}${summary ? ` ${p("summary")}` : ""}">${esc(text)}</div>`).join("");
   const summaryCss = parts.some((part) => part.summary) ? `.${p("summary")}{top:46px;font-size:27px;padding:14px 32px;color:var(--on-accent);background:var(--accent-text)}` : "";
-  if (parts.length) {
-    k.js.unshift(`tl.fromTo([${parts.map(({ name }) => `"#${p(name)}"`).join(",")}],{opacity:0,y:8},{opacity:1,y:0,duration:0.4,ease:"power3.out"},${chromeStart(entrance)});`);
-  }
+  k.js.unshift(...chromeFadeIns(p, parts, chromeStart(entrance), tagShown ? introParts?.landsAt : undefined));
+  if (introParts) k.js.push(...introParts.js);
+  if (backdrop) k.js.push(...backdrop.js);
+  if (introParts) k.fills.push({ from: intro.start, until: intro.end });
+  if (backdrop) k.fills.push({ from: 0, until: Infinity });
   const layer = BACKGROUNDS[k.direction.background].layer;
   return `<template id="${k.id}-template">
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
 <style>
 ${fontsCss}
 ${baseCss(k)}
-${k.css.join("\n")}${summaryCss ? `\n${summaryCss}` : ""}
+${k.css.join("\n")}${summaryCss ? `\n${summaryCss}` : ""}${backdrop ? `\n${backdrop.css}` : ""}${introParts ? `\n${introParts.css}` : ""}
 </style>
 <div id="root" data-composition-id="${k.id}" data-start="0" data-duration="${D}" data-width="1920" data-height="1080">
-<div id="${p("bg")}" class="clip ${p("bg")}" data-start="0" data-duration="${D}" data-track-index="0">${layer ? `<div id="${p(layer)}" class="${p(layer)}"></div>` : ""}</div>
+<div id="${p("bg")}" class="clip ${p("bg")}" data-start="0" data-duration="${D}" data-track-index="0">${layer ? `<div id="${p(layer)}" class="${p(layer)}"></div>` : ""}${backdrop?.html ?? ""}</div>
 <div id="${p("cam")}" class="${p("cam")}">
 ${k.html.join("\n")}
 </div>
-${chromeHtml}
+${chromeHtml}${introParts?.html ?? ""}
 </div>
 <script>
 (function () {

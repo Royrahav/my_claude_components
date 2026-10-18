@@ -1,7 +1,7 @@
-# Opt-in visuals: rail, world, zoom-out
+# Opt-in visuals: rail, world, fillers, zoom-out
 
-Read this when a content is a chaptered journey and `direction` should set `rail` or `background:
-"world"` (scenes.md, Creative direction). Both are off by default, so videos keep looking different:
+Read this when a content is a chaptered journey and `direction` should set `rail`, `background: "world"`
+or the screen fillers below (scenes.md, Creative direction). All are off by default, so videos keep looking different:
 pick them for the content, not for every video.
 
 ## `rail: "on"`: a chapter progress rail
@@ -24,6 +24,26 @@ transparent.
 
 `direction.thread` (text, one line): the example every chapter returns to (writer.md, Script 2).
 It only steers the writer and shows at gate 1 (the `spine:` line).
+
+## Empty screens: the warning and the fillers
+
+Every element reveals on its spoken cue, so the seconds before a scene's first cue can show only the
+background. `build` warns, for each scene, of any stretch over 1.0 s with nothing but background and
+chrome visible (`s05: empty for 3.4 s at the start (first reveal at 3.4 s)`, or `from 4.0 s` after
+elements fade out). The headline's fixed 0.2 s rise counts as content; beats and a close's final
+fade-out are exempt; hand-written `custom` scenes are not checked. Fix it with an earlier cue, or a filler:
+
+- `reveal: "blueprint"` (default `cue`): every element a template reveals by fading or moving in waits
+  from the scene start as a faint ghost (opacity only), and fills in on its cue. Line draws and
+  typed text keep their own reveal; beats are left alone.
+- `chapter_intro: "on"` (default `off`): on a chapter's first scene (summary and close are not chapters) the
+  chapter name enters large in the center, holds, then flies into the chapter tag, which appears as it
+  lands (where the chrome hides the tag, it fades out instead). It takes up to 1.45 s and must end before the
+  first content cue (the headline does not count), so a scene whose first cue comes sooner skips it, and
+  build says so.
+- scene field `backdrop` (1-16 characters, a word or number): a huge faint word behind the content that
+  drifts sideways, present from the first frame. It is decorative: the checker ignores it (contrast and layout)
+  and it stays out of the reading order. Use it on sparse scenes, where it sits in empty space, not under dense rows (it competes with them).
 
 ## Zoom-out summary
 

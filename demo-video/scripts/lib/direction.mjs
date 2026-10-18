@@ -17,7 +17,9 @@ const KNOB_FIELDS = [...Object.keys(KNOB_VALUES), "transitions"];
 export const TONES = Object.freeze(["playful", "light", "balanced", "serious", "critical"]);
 const FREEDOMS = ["guided", "creative", "auteur"];
 export const RAIL_VALUES = Object.freeze(["off", "on"]);
-const FIELDS = ["preset", "mood", "motif", "tone", "freedom", "notes", "thread", "rail", ...KNOB_FIELDS];
+export const CHAPTER_INTRO_VALUES = Object.freeze(["off", "on"]);
+export const REVEAL_VALUES = Object.freeze(["cue", "blueprint"]);
+const FIELDS = ["preset", "mood", "motif", "tone", "freedom", "notes", "thread", "rail", "chapter_intro", "reveal", ...KNOB_FIELDS];
 
 // The original look: what a brief without a direction renders.
 export const DEFAULT_DIRECTION = Object.freeze({
@@ -48,8 +50,8 @@ export function resolveDirection(direction) {
 
 // One compact line for the build output.
 export function describeDirection(direction) {
-  const { pacing, motion, chrome, background, captions, transitions, tone, freedom, rail, thread } = direction;
-  const creative = [tone && `, tone ${tone}`, freedom && `, freedom ${freedom}`, rail && `, rail ${rail}`, thread && `, thread ${JSON.stringify(thread)}`].filter(Boolean).join("");
+  const { pacing, motion, chrome, background, captions, transitions, tone, freedom, rail, thread, chapter_intro: intro, reveal } = direction;
+  const creative = [tone && `, tone ${tone}`, freedom && `, freedom ${freedom}`, rail && `, rail ${rail}`, thread && `, thread ${JSON.stringify(thread)}`, intro && `, chapter_intro ${intro}`, reveal && `, reveal ${reveal}`].filter(Boolean).join("");
   return `pacing ${pacing}, motion ${motion}, chrome ${chrome}, background ${background}, captions ${captions}, transitions ${[...new Set(transitions)].join("/")}${creative}`;
 }
 
@@ -80,16 +82,19 @@ function explicitKnobs(direction) {
   return Object.fromEntries(KNOB_FIELDS.filter((name) => direction[name] != null).map((name) => [name, direction[name]]));
 }
 
-// tone, freedom, notes, thread and rail appear in the result only when set (so the original look resolves
-// unchanged); a null counts as unset, like a null knob. thread is the running example every scene returns to.
+// tone, freedom, notes, thread, rail, chapter_intro and reveal appear in the result only when set (so the original
+// look resolves unchanged); a null counts as unset, like a null knob. thread is the running example every scene
+// returns to; reveal "blueprint" and chapter_intro "on" are the opt-in screen fillers (visuals.md).
 function creativeFields(direction) {
-  const { tone, freedom, notes, thread, rail } = direction;
+  const { tone, freedom, notes, thread, rail, chapter_intro, reveal } = direction;
   if (tone != null) assertOneOf("direction.tone", tone, TONES);
   if (freedom != null) assertOneOf("direction.freedom", freedom, FREEDOMS);
   if (rail != null) assertOneOf("direction.rail", rail, RAIL_VALUES);
+  if (chapter_intro != null) assertOneOf("direction.chapter_intro", chapter_intro, CHAPTER_INTRO_VALUES);
+  if (reveal != null) assertOneOf("direction.reveal", reveal, REVEAL_VALUES);
   assertText("notes", notes);
   assertText("thread", thread);
-  return Object.fromEntries(Object.entries({ tone, freedom, notes, thread, rail }).filter(([, value]) => value != null));
+  return Object.fromEntries(Object.entries({ tone, freedom, notes, thread, rail, chapter_intro, reveal }).filter(([, value]) => value != null));
 }
 
 function assertText(name, value) {

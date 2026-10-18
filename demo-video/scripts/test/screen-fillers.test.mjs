@@ -1,18 +1,15 @@
 // Run: node --test "scripts/test/*.test.mjs"   (from the demo-video skill root)
-// The empty-screen warning and what fills a scene before its content arrives: blueprint reveals, the backdrop
+// The empty-screen warning and what fills a scene before its content arrives: the backdrop
 // word and the chapter intro. The default look must not change, so every knob is checked against its absence.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createScene, wrap } from "../lib/kit.mjs";
-import { CHAPTER_INTRO_VALUES, REVEAL_VALUES, describeDirection, resolveDirection } from "../lib/direction.mjs";
+import { CHAPTER_INTRO_VALUES, describeDirection, resolveDirection } from "../lib/direction.mjs";
 import { backdropParts, planChapterIntro, startsChapter } from "../lib/fillers.mjs";
 import { emptyScreenWarnings, emptyStretches } from "../lib/screen-gaps.mjs";
 import { loadTheme } from "../lib/theme.mjs";
-import { makeCue } from "../lib/timeline.mjs";
-import title, { variants } from "../lib/scenes/title.mjs";
-import { sceneTimeline } from "./helpers.mjs";
 
 const THEME = loadTheme(join(dirname(fileURLToPath(import.meta.url)), "..", "..", "assets", "themes", "labos", "theme.json"));
 const DURATION = 8;
@@ -70,54 +67,11 @@ test("emptyScreenWarnings_nothingRevealed_saysSo", () => {
   assert.deepEqual(warningsOf(sceneOf()), ["s1: nothing is revealed (empty for 8.0 s)"]);
 });
 
-test("emptyScreenWarnings_blueprintGhosts_fillTheWait", () => {
-  const k = sceneOf({ direction: { reveal: "blueprint" }, reveal: (s) => s.rise("a", 4) });
-
-  assert.deepEqual(warningsOf(k), []);
-});
-
 test("emptyScreenWarnings_backdrop_fillsTheWait", () => {
   const k = sceneOf({ scene: { type: "steps", backdrop: "Before" }, reveal: (s) => s.rise("a", 4) });
   wrap(k, { fontsCss: "" });
 
   assert.deepEqual(warningsOf(k), []);
-});
-
-// blueprint reveal -------------------------------------------------------------------------------------------
-
-const riseOf = (direction) => sceneOf({ direction, reveal: (s) => { s.rise("a", 2); s.draw("h", 3); } });
-
-test("blueprint_unset_leavesTheRevealTweenAsItWas", () => {
-  const { js, css } = riseOf();
-
-  assert.equal(js[0], 'tl.fromTo("#s1-a",{opacity:0,y:22},{opacity:1,y:0,duration:0.55,ease:"power3.out"},2);');
-  assert.deepEqual(css, []);
-});
-
-test("blueprint_on_startsTheRevealAsAnOpacityOnlyGhostThatFillsInOnTheCue", () => {
-  const { js, css } = riseOf({ reveal: "blueprint" });
-
-  assert.equal(js[0], 'tl.fromTo("#s1-a",{opacity:0.18,y:22},{opacity:1,y:0,duration:0.55,ease:"power3.out"},2);');
-  assert.deepEqual(css, []);
-});
-
-test("blueprint_on_leavesLineDrawsAndTypingAlone", () => {
-  const { js } = riseOf({ reveal: "blueprint" });
-
-  assert.equal(js[1], 'tl.fromTo("#s1-h",{scaleX:0},{scaleX:1,duration:0.6,ease:"power2.inOut"},3);');
-});
-
-test("blueprint_onABeat_leavesTheBeatAlone", () => {
-  const k = sceneOf({ direction: { reveal: "blueprint" }, scene: { type: "beat" }, reveal: (s) => s.punch("a", 0.15) });
-
-  assert.match(k.js[0], /\{opacity:0,scale:1\.45\}/);
-});
-
-test("blueprint_on_keepsTheChromeFadeInUnchanged", () => {
-  const plain = wrap(sceneOf({ scene: { type: "steps", chapter: "Design" } }), { fontsCss: "", eyebrow: "E" });
-  const blueprint = wrap(sceneOf({ direction: { reveal: "blueprint" }, scene: { type: "steps", chapter: "Design" } }), { fontsCss: "", eyebrow: "E" });
-
-  assert.equal(blueprint, plain);
 });
 
 // backdrop word ----------------------------------------------------------------------------------------------
@@ -212,46 +166,19 @@ test("wrap_noIntro_keepsTheChromeFadeInAsOneTween", () => {
 
 // direction knobs --------------------------------------------------------------------------------------------
 
-test("resolveDirection_chapterIntroAndReveal_areKeptWhenSetAndAbsentOtherwise", () => {
-  assert.deepEqual([resolveDirection({ chapter_intro: "on" }).chapter_intro, resolveDirection({ reveal: "blueprint" }).reveal], ["on", "blueprint"]);
+test("resolveDirection_chapterIntro_isKeptWhenSetAndAbsentOtherwise", () => {
+  assert.equal(resolveDirection({ chapter_intro: "on" }).chapter_intro, "on");
   assert.equal("chapter_intro" in resolveDirection({ chapter_intro: null }), false);
-  assert.equal("reveal" in resolveDirection({}), false);
 });
 
-test("resolveDirection_unknownChapterIntroOrReveal_throwsNamingTheValues", () => {
+test("resolveDirection_unknownChapterIntro_throwsNamingTheValues", () => {
   assert.throws(() => resolveDirection({ chapter_intro: "yes" }), { message: `brief.json direction.chapter_intro must be one of ${CHAPTER_INTRO_VALUES.join(", ")}, got "yes"` });
-  assert.throws(() => resolveDirection({ reveal: "ghost" }), { message: `brief.json direction.reveal must be one of ${REVEAL_VALUES.join(", ")}, got "ghost"` });
 });
 
-test("describeDirection_chapterIntroAndReveal_areAppended", () => {
-  assert.match(describeDirection(resolveDirection({ chapter_intro: "on", reveal: "blueprint" })), /, chapter_intro on, reveal blueprint$/);
+test("resolveDirection_revealRemoved_isAnUnknownField", () => {
+  assert.throws(() => resolveDirection({ reveal: "blueprint" }), /unknown field "reveal"/);
 });
 
-// blueprint on title scenes: elements that take each other's place must not ghost together -------------------
-
-const titleIn = (template, data) => {
-  const timeline = sceneTimeline({ duration: 12, words: [] });
-  const k = createScene({ id: "s1", theme: THEME, fontsCss: "", brief: {}, scene: {}, duration: 12, direction: resolveDirection({ reveal: "blueprint" }) });
-  template(k, data, makeCue(timeline, []));
-  return k.js.join("\n");
-};
-const startOf = (js, id) => js.split(`tl.fromTo("#s1-${id}",{opacity:`)[1].split(/[,}]/)[0];
-const COPY = { title: "Print Gateway", subtitle: "Printing", kicker: ["Reports", "Forms"] };
-
-test("title_blueprintDefaultVariantWithKickers_kickersAndLockupStartHidden", () => {
-  const js = titleIn(title, COPY);
-
-  assert.deepEqual(["k0", "k1", "t1", "sub"].map((id) => startOf(js, id)), ["0", "0", "0", "0"]);
-});
-
-test("title_blueprintKineticWithKickers_wordsAndLockupStartHidden", () => {
-  const js = titleIn(variants.kinetic, COPY);
-
-  assert.deepEqual(["w0", "w1", "t1", "sub"].map((id) => startOf(js, id)), ["0", "0", "0", "0"]);
-});
-
-test("title_blueprintWithoutKickers_lockupStillGhosts", () => {
-  const js = titleIn(title, { title: "Print Gateway", subtitle: "Printing" });
-
-  assert.deepEqual(["t1", "sub"].map((id) => startOf(js, id)), ["0.18", "0.18"]);
+test("describeDirection_chapterIntro_isAppended", () => {
+  assert.match(describeDirection(resolveDirection({ chapter_intro: "on" })), /, chapter_intro on$/);
 });

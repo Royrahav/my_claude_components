@@ -171,7 +171,7 @@ a layout problem that needs new wording, or a `house style:` build warning:
      video's: restructure (Script 3); preset and tone as the last video's: another preset;
      monotone rhythm: add a `beat` or lengthen a showcase.
    - a chapter reappearing after another: reorder so each chapter is one run, or rename it;
-   - `empty for N s`: an earlier cue, `reveal: blueprint`, a `backdrop` or `chapter_intro` (visuals.md).
+   - `empty for N s`: reveal the first element on the first spoken word or an earlier cue, or add a `backdrop` or `chapter_intro` (visuals.md).
    History warnings yield to the creator's notes, taste notes and `auteur` (Art freedom), and to
    the order (Script 2): never reorder scenes to look different.
 2. Run `D plan .` and `D script .`.

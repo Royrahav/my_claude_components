@@ -62,7 +62,7 @@ without `direction`, the video keeps the original look (the first value of each 
 - `background`: `grid` (dotted grid with drift), `plain` (the canvas only), `soft` (faint
   theme-tinted glows) or `world` (one persistent layer, visuals.md).
 - `rail`: `off` or `on` (a chapter progress rail, visuals.md). `thread` (text): the running example.
-- `chapter_intro` (`on`), `reveal` (`blueprint`): fill the wait before the first cue (visuals.md).
+- `chapter_intro` (`on`): the chapter name enters large on a chapter's first scene (visuals.md).
 - `camera` (`drift`), `flows` (`on`), `thread_pin` (`on`): a camera move per scene, dots along lines, a pinned `thread` (visuals.md).
 - `captions`: `pill`, `lower` (a full-width band at the bottom) or `minimal` (text only, on the
   canvas).

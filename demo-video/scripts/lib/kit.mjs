@@ -6,7 +6,7 @@
 import { DEFAULT_DIRECTION, TRANSITION_SECONDS, seededRandom } from "./direction.mjs";
 import { driftMove } from "./drift.mjs";
 import { backdropParts, chapterIntroParts } from "./fillers.mjs";
-import { isBeat, isSummary } from "./house-style.mjs";
+import { isSummary } from "./house-style.mjs";
 import { rgba, themeVars } from "./theme.mjs";
 
 export const ICONS = {
@@ -78,10 +78,6 @@ const BACKGROUNDS = {
 const GLOW = { size: 44, alpha: 0.6, seconds: 0.9 };
 const SPARKS = { count: 10, spread: 130, seconds: 0.8, size: 10 };
 const CAMERA = { zoom: 1.35, seconds: 0.9, centerX: 960, centerY: 540 };
-// direction.reveal "blueprint": a cued element waits as a faint ghost (opacity only) until its cue. The
-// ghost stays under 0.2, the opacity below which HyperFrames' layout audit treats an element as not there, so a
-// ghost never counts as text overlapping the chapter intro or another element.
-const GHOST = { opacity: 0.18 };
 // direction.flows "on": dots per line, the seconds one trip takes (plus a seeded spread per line), their size.
 const FLOW = { dots: 3, period: 1.7, periodSpread: 0.5, seed: 31, size: 10, alpha: 0.85 };
 // The headline rises at a fixed time, not on a spoken cue, so it does not set when the first content cue is.
@@ -102,18 +98,15 @@ export function createScene({ id, theme, fontsCss, brief, scene, duration, direc
   let sparkBursts = 0;
   let flowLines = 0;
   const cameraStates = new Map();
-  const blueprint = direction.reveal === "blueprint" && !isBeat(scene ?? {});
   const shown = []; // what the kit reveals: { target, from (visible from), cue (revealed at) }
   const exits = []; // { target, at }: a `to` that fades an element out
   const fills = []; // { from, until }: what fills the screen without being revealed content (backdrop, intro)
-  // Opacity reveals: hidden until the cue, or, in blueprint, a ghost that fills in on the cue. `ghost: false` keeps an
-  // element hidden until its cue even in blueprint: for elements that take each other's place (the title's kickers).
-  const appear = (s, t, { from = "", to = "", dur, ease, ghost = true }) => {
+  // Opacity reveals: hidden until the cue.
+  const appear = (s, t, { from = "", to = "", dur, ease }) => {
     const target = sel(s);
-    const ghosted = blueprint && ghost;
-    shown.push({ target, from: ghosted ? 0 : f2(t), cue: f2(t) });
+    shown.push({ target, from: f2(t), cue: f2(t) });
     const list = (...parts) => parts.filter(Boolean).join(",");
-    const start = list(`opacity:${ghosted ? GHOST.opacity : 0}`, from);
+    const start = list("opacity:0", from);
     const end = list("opacity:1", to, `duration:${scaled(dur)}`, `ease:"${ease}"`);
     tw(`tl.fromTo("${target}",{${start}},{${end}},${f2(t)});`);
   };
@@ -155,13 +148,13 @@ export function createScene({ id, theme, fontsCss, brief, scene, duration, direc
     },
 
     // motion vocabulary (fromTo everywhere: seek-safe, hidden before the reveal)
-    rise: (s, t, dy = 22, dur = 0.55, opts) => appear(s, t, { from: `y:${dy}`, to: "y:0", dur, ease: eases.rise, ...opts }),
-    pop: (s, t, dur = 0.45, opts) => appear(s, t, { from: "scale:0.7", to: "scale:1", dur, ease: eases.pop, ...opts }),
-    slide: (s, t, dx = -40, dur = 0.55, opts) => appear(s, t, { from: `x:${dx}`, to: "x:0", dur, ease: eases.slide, ...opts }),
-    fade: (s, t, dur = 0.5, opts) => appear(s, t, { dur, ease: eases.fade, ...opts }),
+    rise: (s, t, dy = 22, dur = 0.55) => appear(s, t, { from: `y:${dy}`, to: "y:0", dur, ease: eases.rise }),
+    pop: (s, t, dur = 0.45) => appear(s, t, { from: "scale:0.7", to: "scale:1", dur, ease: eases.pop }),
+    slide: (s, t, dx = -40, dur = 0.55) => appear(s, t, { from: `x:${dx}`, to: "x:0", dur, ease: eases.slide }),
+    fade: (s, t, dur = 0.5) => appear(s, t, { dur, ease: eases.fade }),
     // A big entrance: starts oversized and slams to size.
-    punch: (s, t, dur = 0.5, opts) => appear(s, t, { from: "scale:1.45", to: "scale:1", dur, ease: eases.punch, ...opts }),
-    grow: (s, t, dur = 0.7, opts) => appear(s, t, { from: "scale:0.92", to: "scale:1", dur, ease: eases.grow, ...opts }),
+    punch: (s, t, dur = 0.5) => appear(s, t, { from: "scale:1.45", to: "scale:1", dur, ease: eases.punch }),
+    grow: (s, t, dur = 0.7) => appear(s, t, { from: "scale:0.92", to: "scale:1", dur, ease: eases.grow }),
     draw(s, t, dur = 0.6) {
       appearAt(s, t);
       tw(`tl.fromTo("${sel(s)}",{scaleX:0},{scaleX:1,duration:${scaled(dur)},ease:"${eases.draw}"},${f2(t)});`);
@@ -256,8 +249,8 @@ export function createScene({ id, theme, fontsCss, brief, scene, duration, direc
         tw(`tl.fromTo("#${name("fd", n)}",{opacity:0},{opacity:1,duration:${f2(period / 2)},ease:"none",yoyo:true,repeat:${2 * trips - 1}},${start});`);
       }
     },
-    // When the scene shows something beyond its background and chrome: each revealed element from its reveal (from
-    // the scene start when it waits as a blueprint ghost) until a template fades it out, plus the fillers.
+    // When the scene shows something beyond its background and chrome: each revealed element from its reveal until a
+    // template fades it out, plus the fillers.
     visibleIntervals: () => [...shown.map(({ target, from }) => ({ from, until: exitAfter(exits, target, from) })), ...fills],
     // The first spoken-cue reveal: the headline's fixed-time rise is not one.
     firstContentCue: () => Math.min(duration, ...shown.filter(({ target }) => target !== sel(HEADLINE)).map(({ cue }) => cue)),

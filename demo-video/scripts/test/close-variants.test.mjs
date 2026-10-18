@@ -323,21 +323,3 @@ for (const [name, template] of [["default", close], ["punchline", variants.punch
     assert.deepEqual([html.includes("refbg"), css.includes("refbg")], [false, false]);
   });
 }
-
-// reveal blueprint ---------------------------------------------------------------------------------------
-
-function blueprintClose(template, data) {
-  const k = createScene({ id: "s1", theme: THEME, fontsCss: "", brief: {}, scene: {}, duration: 12, direction: resolveDirection({ reveal: "blueprint" }) });
-  template(k, data, makeCue(sceneTimeline({ duration: 12 }), []));
-  return k.js;
-}
-const startsHidden = (js, id) => js.some((line) => line.startsWith(`tl.fromTo("#s1-${id}",{opacity:0`) && !line.includes("{opacity:0."));
-
-test("close_spokenLinesUnderBlueprint_stayHiddenUntilTheirCue", () => {
-  const tagline = blueprintClose(close, { title: "T", tagline: ["One.", "Two."] });
-  const punchline = blueprintClose(variants.punchline, { line: "Say it plain", sub: "Then stop" });
-  const callback = blueprintClose(variants.callback, { hook: "Why?", answer: "Because." });
-
-  assert.deepEqual([startsHidden(tagline, "ph0"), startsHidden(tagline, "ph1"), startsHidden(punchline, "w0"), startsHidden(punchline, "w2"), startsHidden(punchline, "psub"), startsHidden(callback, "an")], Array(6).fill(true));
-  assert.equal(startsHidden(tagline, "t1"), false); // the title is not a spoken-in-pieces line: it still ghosts
-});

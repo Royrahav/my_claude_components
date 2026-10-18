@@ -23,17 +23,16 @@ ${lockupCss(p)}`);
   const top0 = 450 - (n * 120) / 2;
   kick.forEach((w, i) => {
     html.push(`<div id="${p(`k${i}`)}" class="${p("kick")}" style="top:${top0 + i * 120}px"><span class="${p("kbar")}"></span>${k.esc(w.text)}</div>`);
-    k.slide(`k${i}`, kT[i], -60, KICK_IN, { ghost: false });
+    k.slide(`k${i}`, kT[i], -60, KICK_IN);
     k.to(`k${i}`, lockT - KICK_CLEAR, { opacity: 0, x: -30 }, 0.4, "power2.in");
   });
 
   const logo = logoHtml(k, d);
   html.push(lockupHtml(k, d, logo));
-  const lockup = { ghost: n === 0 }; // kickers take the lockup's place, so while they exist it waits unseen
-  if (logo) k.grow("logo", lockT, 0.8, lockup);
-  k.rise("t1", lockT + (logo ? 0.3 : 0), 24, 0.7, lockup);
+  if (logo) k.grow("logo", lockT, 0.8);
+  k.rise("t1", lockT + (logo ? 0.3 : 0), 24, 0.7);
   k.draw("acc", lockT + 0.7, 0.5);
-  if (d.subtitle) k.fade("sub", lockT + 1.0, 0.6, lockup);
+  if (d.subtitle) k.fade("sub", lockT + 1.0, 0.6);
 
   k.ambient(Math.min(c.duration, lockT + 2));
   if (n) k.sound("whoosh", lockT - 0.3, 0.5);
@@ -100,7 +99,7 @@ ${lockupCss(p)}`);
     const top = Math.round(LOCKUP_CENTER_Y - (size * WORD_LINE) / 2);
     html.push(`<div id="${p(`w${i}`)}" class="${p("word")}" style="top:${top}px;font-size:${size}px"><span class="${p("wt")}">${k.esc(w.text)}<i id="${p(`u${i}`)}" class="${p("wu")}"></i></span></div>`);
     const exit = exitOf(i);
-    k.pop(`w${i}`, kT[i], WORD_IN, { ghost: false });
+    k.pop(`w${i}`, kT[i], WORD_IN);
     k.draw(`u${i}`, kT[i] + 0.15, 0.35);
     k.to(`w${i}`, exit.t, { opacity: 0, scale: exit.scale }, exit.duration, exit.ease);
     k.sound("pop", kT[i], 0.3);
@@ -108,11 +107,10 @@ ${lockupCss(p)}`);
 
   const logo = logoHtml(k, d);
   html.push(lockupHtml(k, d, logo));
-  const lockup = { ghost: n === 0 };
-  if (logo) k.grow("logo", lockT, 0.8, lockup);
-  k.pop("t1", lockT + (logo ? 0.2 : 0), 0.6, lockup);
+  if (logo) k.grow("logo", lockT, 0.8);
+  k.pop("t1", lockT + (logo ? 0.2 : 0), 0.6);
   k.draw("acc", lockT + 0.7, 0.5);
-  if (d.subtitle) k.fade("sub", lockT + 1.0, 0.6, lockup);
+  if (d.subtitle) k.fade("sub", lockT + 1.0, 0.6);
 
   k.ambient(Math.min(c.duration, lockT + 2));
   if (n) k.sound("whoosh", lockT - COLLAPSE, 0.45);

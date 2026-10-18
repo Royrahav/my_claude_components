@@ -3,7 +3,7 @@
 //
 // What counts as content: every element a template reveals through the kit's reveal helpers (headline
 // included), from its reveal time until a template fades it out. What fills the screen without being
-// content: a backdrop word, the chapter intro, and blueprint outlines (visible from the scene start).
+// content: a backdrop word, and the chapter intro.
 // Chrome (eyebrow, chapter tag) and the background never count. Only gaps that end in a reveal are
 // reported, so the close's closing fade-out is exempt, and a beat is punctuation and exempt as a whole.
 import { isBeat } from "./house-style.mjs";

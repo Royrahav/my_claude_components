@@ -18,11 +18,10 @@ export const TONES = Object.freeze(["playful", "light", "balanced", "serious", "
 const FREEDOMS = ["guided", "creative", "auteur"];
 export const RAIL_VALUES = Object.freeze(["off", "on"]);
 export const CHAPTER_INTRO_VALUES = Object.freeze(["off", "on"]);
-export const REVEAL_VALUES = Object.freeze(["cue", "blueprint"]);
 export const CAMERA_VALUES = Object.freeze(["push", "drift"]);
 export const FLOWS_VALUES = Object.freeze(["off", "on"]);
 export const THREAD_PIN_VALUES = Object.freeze(["off", "on"]);
-const FIELDS = ["preset", "mood", "motif", "tone", "freedom", "notes", "thread", "rail", "chapter_intro", "reveal", "camera", "flows", "thread_pin", ...KNOB_FIELDS];
+const FIELDS = ["preset", "mood", "motif", "tone", "freedom", "notes", "thread", "rail", "chapter_intro", "camera", "flows", "thread_pin", ...KNOB_FIELDS];
 
 // The original look: what a brief without a direction renders.
 export const DEFAULT_DIRECTION = Object.freeze({
@@ -53,8 +52,8 @@ export function resolveDirection(direction) {
 
 // One compact line for the build output.
 export function describeDirection(direction) {
-  const { pacing, motion, chrome, background, captions, transitions, tone, freedom, rail, thread, chapter_intro: intro, reveal, camera, flows, thread_pin: pin } = direction;
-  const creative = [tone && `, tone ${tone}`, freedom && `, freedom ${freedom}`, rail && `, rail ${rail}`, thread && `, thread ${JSON.stringify(thread)}`, intro && `, chapter_intro ${intro}`, reveal && `, reveal ${reveal}`, camera && `, camera ${camera}`, flows && `, flows ${flows}`, pin && `, thread_pin ${pin}`].filter(Boolean).join("");
+  const { pacing, motion, chrome, background, captions, transitions, tone, freedom, rail, thread, chapter_intro: intro, camera, flows, thread_pin: pin } = direction;
+  const creative = [tone && `, tone ${tone}`, freedom && `, freedom ${freedom}`, rail && `, rail ${rail}`, thread && `, thread ${JSON.stringify(thread)}`, intro && `, chapter_intro ${intro}`, camera && `, camera ${camera}`, flows && `, flows ${flows}`, pin && `, thread_pin ${pin}`].filter(Boolean).join("");
   return `pacing ${pacing}, motion ${motion}, chrome ${chrome}, background ${background}, captions ${captions}, transitions ${[...new Set(transitions)].join("/")}${creative}`;
 }
 
@@ -87,8 +86,8 @@ function explicitKnobs(direction) {
 
 // The opt-in creative fields: each appears in the result only when set (so the original look resolves unchanged); a
 // null counts as unset, like a null knob. thread is the running example every scene returns to; rail, chapter_intro,
-// reveal, camera, flows and thread_pin are the opt-in visuals (visuals.md).
-const CHOICES = { tone: TONES, freedom: FREEDOMS, rail: RAIL_VALUES, chapter_intro: CHAPTER_INTRO_VALUES, reveal: REVEAL_VALUES, camera: CAMERA_VALUES, flows: FLOWS_VALUES, thread_pin: THREAD_PIN_VALUES };
+// camera, flows and thread_pin are the opt-in visuals (visuals.md).
+const CHOICES = { tone: TONES, freedom: FREEDOMS, rail: RAIL_VALUES, chapter_intro: CHAPTER_INTRO_VALUES, camera: CAMERA_VALUES, flows: FLOWS_VALUES, thread_pin: THREAD_PIN_VALUES };
 const TEXTS = ["notes", "thread"];
 
 function creativeFields(direction) {

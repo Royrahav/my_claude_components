@@ -63,3 +63,22 @@ true` redraws the pieces the video built, each landing on the word that recalls 
 `sparks` for the last piece), then pulls the `camera` back to the full picture. With `rail: on` the
 rail shows full under it. Its narration still carries 2-4 takeaways. Helpers: custom-scene.md,
 Effects for signature scenes.
+
+## 3D where it fits
+
+`iso-journey` (a request travelling stop to stop) and `iso-map` (the whole map as the summary) draw an isometric
+world in CSS 3D. Use them only where the content is spatial or a flow; everything else stays 2D. Build warns when 3D
+scenes pass about a third of the counted scenes (close, summary and beats aside).
+- Colors follow the theme: a dark world on dark themes, a light one on light themes.
+- Cues: each stop rises on its cue with its label. The first stop of a journey, and every stop of a map, stands from
+  the start, so the first frame is never empty; their labels and lamps land on the cues. Uncued map stops light 1.2 s
+  apart; the takeaway rows wait until the map has moved aside (a row held back over 0.5 s warns).
+- iso-journey: a stop needs 1.6 s after the one before it; one that slips over 0.5 s past its cue warns, naming it. In both,
+  a stop that cannot show its label before the scene ends stops the build (fewer stops, earlier cues or a longer `hold`).
+  iso-map spaces uncued stops 1.2 s (cued: 1.0 s minimum) and moves a late stop without a warning.
+  The scene's own motion (a printed sheet sliding out) may be cut by the scene end; it is decoration.
+- A `panel` shows from its stop's arrival and stays at least 0.8 s before the camera leaves; a stop followed by a stop
+  less than about 2.3 s later cannot carry one (build error: cue the next stop later or drop the panel).
+- The pull-back at the end of a journey is shortened to the time left, and skipped with a warning under 1 s.
+- A 3D scene that opens a chapter skips the chapter intro: it has its own establishing shot (intended).
+- Keep stop titles short; an iso-map reads best with 2-4 stops.

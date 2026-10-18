@@ -4,6 +4,7 @@ import { variantOf } from "./variants.mjs";
 const MIN_RECAP_ITEMS = 2;
 const MAX_RECAP_ITEMS = 4;
 const MAX_TEMPLATE_SHARE = 0.4;
+const MAX_3D_SHARE = 1 / 3; // 3D scenes (the iso-* templates) stay about a third of the video
 const MIN_SCENES_FOR_SHARE = 5;
 const MIN_SCENES_FOR_TRANSITIONS = 6;
 const MIN_SCENES_FOR_RHYTHM = 6;
@@ -35,6 +36,7 @@ export function houseStyleWarnings(scenes, { sources, transitions, durations = [
     signatureWarning(sources),
     ...backToBackWarnings(scenes),
     ...overusedTemplateWarnings(scenes),
+    ...overused3dWarnings(scenes),
     ...chapterOrderWarnings(scenes),
     sameTransitionWarning(transitions),
     rhythmWarning(durations),
@@ -74,6 +76,17 @@ function overusedTemplateWarnings(scenes) {
   return [...uses]
     .filter(([, count]) => count > 1 && count > counted.length * MAX_TEMPLATE_SHARE)
     .map(([type, count]) => `house style: ${type} is used in ${count} of ${counted.length} scenes (over ${MAX_TEMPLATE_SHARE * 100}%, close and summary aside); vary the templates`);
+}
+
+// 3D is for spatial or flow content, not a look for the whole video. Counted like the template share (close, summary
+// and beat aside), so a closing iso-map does not count.
+const is3d = (scene) => String(scene.type).startsWith("iso-");
+
+function overused3dWarnings(scenes) {
+  if (scenes.length < MIN_SCENES_FOR_SHARE) return [];
+  const counted = scenes.filter((scene) => !isClose(scene) && !isSummary(scene) && !isBeat(scene));
+  const count = counted.filter(is3d).length;
+  return count > counted.length * MAX_3D_SHARE ? [`house style: ${count} of ${counted.length} scenes are 3D (over a third, close and summary aside); keep 3D for spatial or flow content`] : [];
 }
 
 // A chapter is one unbroken run: when a label comes back after a different one, the order jumps around.

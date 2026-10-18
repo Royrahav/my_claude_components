@@ -1,7 +1,7 @@
 # Writing scenes.json
 
 Contents: designing the structure, summary forms, creative direction, words and timing, writing
-rules, scene fields, cues, the 14 templates (fields, layout variants, a tested example each).
+rules, scene fields, cues, the 16 templates (fields, layout variants, a tested example each).
 
 ## Designing the structure
 
@@ -122,7 +122,7 @@ Scene fields:
 - `variant?`: a template's layout variant, where the template offers them (listed under each template
   below); defaults to `default`. An unknown name stops the build and lists the valid ones.
 - `hold?`: seconds held after the speech (defaults: title 3, close 4, metrics 2.2, statement and
-  recap 2, options and states 1.8, decision 1.6, beat 0.8, close with `sting` 1.5, others 1.4; the direction's pacing scales them).
+  recap 2, options and states 1.8, decision 1.6, beat 0.8, iso-journey 3, iso-map 2, close with `sting` 1.5, others 1.4; the direction's pacing scales them).
 - `backdrop?`: a faint huge word behind the content (visuals.md). `pin?`: rewrites the pinned running example from this scene on.
 - `transition?`: how this scene enters: `push`, `zoom`, `fade` or `cut`. By default it comes from
   the direction's `transitions` (push without one), and the last scene fades in. An unknown name
@@ -202,6 +202,23 @@ Variants:
             "stations": [{ "title": "labOS", "icon": "cloud", "chips": ["Screens"], "at": "labOS" }, { "title": "Print Gateway", "icon": "gate", "hero": true, "code": "POST /print", "at": "gateway" }, { "title": "CUPS server", "icon": "queue", "at": "CUPS" }, { "title": "Printers", "icon": "printer", "at": "prints" }],
             "links": [{ "label": "HTTP" }, { "label": "lp", "mono": true }, { "label": "IPP", "at": "IPP" }],
             "helpers": [{ "text": "ippfix (setup aid)", "link": 2 }] } }
+```
+
+### iso-journey: a request's journey in 3D
+Spatial or flow content only (visuals.md). 2-6 stops on a road; a packet travels stop to stop
+and the camera follows. `stops` [{title, kind, at?, note?, panel?: {code? | chips?: [..], at?}}]; `kind`:
+users, server, database, queue, printer, document, shield, cloud, phone, container (else a build error).
+`pull_back?`: pull back to the whole map at the end; on from 3 stops, `false` stays on the last stop. A `panel` is a
+floating card beside its stop.
+```json
+{"type":"iso-journey","chapter":"How it works","say":"A lab user prints a report. The request goes to the gateway, which checks the address. The gateway hands the job to the CUPS queue. Then the printer prints it.","data":{"stops":[{"title":"Lab user","kind":"users","at":"user"},{"title":"Print Gateway","kind":"container","at":"gateway","panel":{"code":"POST /print","at":"checks"}},{"title":"CUPS queue","kind":"queue","at":"CUPS"},{"title":"Printer","kind":"printer","at":"printer"}]}}
+```
+
+### iso-map: the whole map in 3D, the zoom-out summary
+Set `"summary": true`. The camera starts close and pulls back, each stop lights in turn, then the map moves left and the
+takeaways rise beside it. `stops` [{title, kind, at?, note?}] (2-4), `takeaways` [{title, example, at?, example_at?}] (2-4).
+```json
+{"type":"iso-map","summary":true,"say":"The whole route at once. A lab user reaches the gateway, then the queue, then the printer. The route is one string. It is checked on every job.","data":{"stops":[{"title":"Lab user","kind":"users"},{"title":"Gateway","kind":"container"},{"title":"Printer","kind":"printer"}],"takeaways":[{"title":"One string","example":"A report prints with no setup","at":"string"},{"title":"Checked per job","example":"An unlisted server gets a 403","at":"checked"}]}}
 ```
 
 ### decision: a code-path branch

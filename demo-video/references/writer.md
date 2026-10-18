@@ -89,6 +89,12 @@ template, history warnings) never overrides the order.
   Picked at gate 1: keep the approved script, allow a third signature scene, and propose any
   restructure as a Revision (changed scenes only).
 
+## 3D where it fits
+
+`iso-journey` and `iso-map` only for spatial or flow content: an architecture, a request's journey, where things
+live, the zoom-out summary. Explanations, code, numbers, lists and decisions stay 2D. At most about a third of the
+scenes; clarity and story order beat visuals (visuals.md).
+
 ## Signature scene
 
 Every video gets at least one signature scene designed only for this demo: a visual metaphor

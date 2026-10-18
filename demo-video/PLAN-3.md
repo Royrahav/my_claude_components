@@ -1,6 +1,6 @@
 # Plan 3: 3D where it fits
 
-Status: approved 2026-10-18, in progress. Lane: Full (dev-flow), 2 milestones. Follows PLAN-2
+Status: implemented 2026-10-18 (M1 3abd5c1, M2 next commit); review PASS on both. Lane: Full (dev-flow), 2 milestones. Follows PLAN-2
 (commits 3c401e1, b2b6e0e, c8e267a; reveal blueprint removed in 80b3e45).
 
 ## Why

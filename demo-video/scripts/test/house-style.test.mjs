@@ -240,6 +240,28 @@ test("houseStyleWarnings_aRunOfThree_warnsForEachAdjacentPair", () => {
   assert.deepEqual(warningsFor(scenes), [backToBack("s04", "s05", "split"), backToBack("s05", "s06", "split")]);
 });
 
+// 3D scenes ----------------------------------------------------------------------------------------------
+
+const too3d = (count, counted) => `house style: ${count} of ${counted} scenes are 3D (over a third, close and summary aside); keep 3D for spatial or flow content`;
+
+test("houseStyleWarnings_3dScenesOverAThirdOfTheCountedScenes_warns", () => {
+  const scenes = scenesOf("title", "iso-journey", "split", "iso-map", "code", "recap", "close");
+
+  assert.deepEqual(warningsFor(scenes), [too3d(2, 5)]);
+});
+
+test("houseStyleWarnings_3dScenesAtAThird_hasNoWarning", () => {
+  const scenes = scenesOf("title", "iso-journey", "split", "iso-map", "code", "bullets", "recap", "close");
+
+  assert.deepEqual(warningsFor(scenes), []);
+});
+
+test("houseStyleWarnings_anIsoMapAsTheSummary_isNotCountedAs3d", () => {
+  const scenes = scenesOf("title", "iso-journey", "split", "code", { type: "iso-map", summary: true }, "close");
+
+  assert.deepEqual(warningsFor(scenes), []);
+});
+
 // one template everywhere ---------------------------------------------------------------------------
 
 test("houseStyleWarnings_templateInMoreThan40PercentOfScenes_warns", () => {

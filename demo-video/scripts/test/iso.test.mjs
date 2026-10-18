@@ -3,6 +3,7 @@
 // rule that a preserve-3d element is never faded.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createScene } from "../lib/kit.mjs";
@@ -231,4 +232,26 @@ test("isoMap_takeawayCuedNearTheSceneEnd_stopsTheBuild", () => {
   data.takeaways[1].at = 23.5;
 
   assert.throws(() => build(isoMap, data), /takeaway 2 .* too close to the scene's end/);
+});
+
+// The one-line JSON scenes documented under a `### <type>:` heading of scenes.md.
+function documentedScene(type) {
+  const section = readFileSync(join(THEMES, "..", "..", "references", "scenes.md"), "utf8").split(`### ${type}:`)[1].split(/\r?\n### /)[0];
+  return JSON.parse(section.match(/^\{ ?"type":.*\}$/m)[0]);
+}
+
+test("scenesDoc_isoExamples_buildWithCuesResolvedAndNothingEmpty", () => {
+  for (const [type, template, hold] of [["iso-journey", isoJourney, 3.0], ["iso-map", isoMap, 2.0]]) {
+    const scene = documentedScene(type);
+    const words = scene.say.split(/\s+/).map((text, i) => ({ text, start: 0.6 + i * 0.4, end: 0.9 + i * 0.4 }));
+    const speechEnd = words.at(-1).end;
+    const warnings = [];
+    const timeline = { id: "s1", type, start: 0, duration: speechEnd + hold, speechEnd, words };
+    const k = createScene({ id: "s1", theme: labos, fontsCss: "", brief: {}, scene, duration: timeline.duration });
+
+    template(k, scene.data, makeCue(timeline, warnings));
+
+    assert.deepEqual(warnings, [], type);
+    assert.deepEqual(emptyScreenWarnings({ id: "s1", scene, intervals: k.visibleIntervals(), duration: timeline.duration }), [], type);
+  }
 });

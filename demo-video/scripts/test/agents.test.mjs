@@ -218,12 +218,14 @@ test("skillDocs_containNoEmOrEnDashes", () => {
 });
 
 const SKILL_MD_MAX_BYTES = 14500;
-const WRITER_PLUS_SCENES_MAX_BYTES = 38000;
+const WRITER_PLUS_SCENES_MAX_BYTES = 39950;
 const sizeOf = (...parts) => statSync(join(...parts)).size;
+// Measured with LF line endings, so a CRLF checkout does not change the result.
+const lfSizeOf = (...parts) => Buffer.byteLength(readFileSync(join(...parts), "utf8").replace(/\r\n/g, "\n"));
 
 test("skillDocs_stayWithinByteCeilings", () => {
   const skillMd = sizeOf(SKILL_ROOT, "SKILL.md");
-  const writerAndScenes = sizeOf(REFERENCES_DIR, "writer.md") + sizeOf(REFERENCES_DIR, "scenes.md");
+  const writerAndScenes = lfSizeOf(REFERENCES_DIR, "writer.md") + lfSizeOf(REFERENCES_DIR, "scenes.md");
 
   assert.deepEqual([skillMd <= SKILL_MD_MAX_BYTES, writerAndScenes <= WRITER_PLUS_SCENES_MAX_BYTES], [true, true]);
 });

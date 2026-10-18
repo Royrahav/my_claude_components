@@ -63,6 +63,13 @@ and it outranks the presets; choose "Artist's cut" for more creative license. La
 `history.jsonl` there, so the next video differs from the last. Every video ends with a labeled
 Summary, then a closing scene whose form varies.
 
+Each video follows one running example through ordered chapters, with a chapter progress rail and
+one persistent background behind the scenes. Where the content has a spatial or flow shape (an
+architecture, a request's journey, the zoom-out summary), Claude can use 3D scenes: an isometric
+world with glowing objects, a camera that flies from stop to stop and pulls back to the whole map.
+3D stays the exception (about a third of the scenes at most) and looks best on `midnight`.
+3D videos render about 2-3 times slower; render them with nothing else heavy running.
+
 ## Cost
 
 Claude: voice, timing, animation and rendering run in local scripts that print short summaries.

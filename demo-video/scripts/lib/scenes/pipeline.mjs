@@ -40,7 +40,8 @@ export default function pipeline(k, d, c) {
     if (i > 0) {
       const lx = xs[i - 1] + w;
       html.push(`<div id="${p(`l${i}`)}" class="${p("ln")}" style="left:${lx}px;width:${gap}px"></div>`);
-      k.draw(`l${i}`, linkDrawTime(T[i]), 0.45);
+      k.draw(`l${i}`, linkDrawTime(T[i]), LINK_DRAW);
+      k.flow(`l${i}`, linkDrawTime(T[i]) + LINK_DRAW);
       const L = links[i - 1];
       if (L?.label) {
         html.push(`<div id="${p(`k${i}`)}" class="${p("lk")}" style="left:${lx - 30}px;width:${gap + 60}px">${linkLabelHtml(k, L)}</div>`);
@@ -72,7 +73,8 @@ function stationTimes(c, stations) {
 }
 
 // A link draws in just before the station it leads to.
-const linkDrawTime = (stationT) => Math.max(0.2, stationT - 0.45);
+const LINK_DRAW = 0.45;
+const linkDrawTime = (stationT) => Math.max(0.2, stationT - LINK_DRAW);
 
 const helperTime = (c, hp, T) => c.cue(hp.at, Math.max(T[T.length - 1] + 0.8, c.last - 1.6));
 
@@ -136,7 +138,8 @@ function verticalPipeline(k, d, c) {
     }
     if (i > 0) {
       html.push(`<div id="${p(`l${i}`)}" class="${p("vln")}" style="top:${gapTop(i - 1)}px"></div>`);
-      k.drawY(`l${i}`, linkDrawTime(T[i]), 0.45);
+      k.drawY(`l${i}`, linkDrawTime(T[i]), LINK_DRAW);
+      k.flow(`l${i}`, linkDrawTime(T[i]) + LINK_DRAW, { axis: "y" });
       const L = links[i - 1];
       if (L?.label) {
         html.push(`<div id="${p(`k${i}`)}" class="${p("vlk")}" style="top:${gapTop(i - 1)}px">${linkLabelHtml(k, L)}</div>`);

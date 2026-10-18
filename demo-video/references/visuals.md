@@ -1,4 +1,4 @@
-# Opt-in visuals: rail, world, fillers, zoom-out
+# Opt-in visuals: rail, world, fillers, motion, zoom-out
 
 Read this when a content is a chaptered journey and `direction` should set `rail`, `background: "world"`
 or the screen fillers below (scenes.md, Creative direction). All are off by default, so videos keep looking different:
@@ -44,6 +44,20 @@ fade-out are exempt; hand-written `custom` scenes are not checked. Fix it with a
 - scene field `backdrop` (1-16 characters, a word or number): a huge faint word behind the content that
   drifts sideways, present from the first frame. It is decorative: the checker ignores it (contrast and layout)
   and it stays out of the reading order. Use it on sparse scenes, where it sits in empty space, not under dense rows (it competes with them).
+
+## Moving like video: camera, flows, pinned example
+
+- `camera: "drift"` (default `push`, a 2 % push): each scene gets its own slow zoom (about 4-5.5 %, in or out
+  alternately) and a pan of under 10 px, dealt from the scene's position so consecutive scenes never move the same
+  way. The content edge can move about 50 px outward at the extreme frame, so keep the 96 px margins. A scene that
+  drives its own stage with `k.camera` keeps the push (call `ambient` after it), so the moves never stack.
+- `flows: "on"`: dots stream along the connecting lines of `pipeline` (both layouts) and the `decision` yes path
+  once each line has drawn, until the scene ends. For a signature scene, `k.flow(lineId, t, { axis })` does the
+  same for an empty line element (`axis: "y"` for a line that draws downward); without the knob it does nothing.
+- `thread_pin: "on"`: a small pill with `direction.thread` at the top center, between the eyebrow and the chapter
+  tag, from the first scene after the title. A scene's `pin` (text, 1-48 characters) replaces it from that scene on
+  (the old pill leaves as the new one arrives). It leaves for the summary and the close. Without `thread`, build
+  warns and draws nothing.
 
 ## Zoom-out summary
 

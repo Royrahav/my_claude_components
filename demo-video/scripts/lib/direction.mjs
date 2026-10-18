@@ -19,7 +19,10 @@ const FREEDOMS = ["guided", "creative", "auteur"];
 export const RAIL_VALUES = Object.freeze(["off", "on"]);
 export const CHAPTER_INTRO_VALUES = Object.freeze(["off", "on"]);
 export const REVEAL_VALUES = Object.freeze(["cue", "blueprint"]);
-const FIELDS = ["preset", "mood", "motif", "tone", "freedom", "notes", "thread", "rail", "chapter_intro", "reveal", ...KNOB_FIELDS];
+export const CAMERA_VALUES = Object.freeze(["push", "drift"]);
+export const FLOWS_VALUES = Object.freeze(["off", "on"]);
+export const THREAD_PIN_VALUES = Object.freeze(["off", "on"]);
+const FIELDS = ["preset", "mood", "motif", "tone", "freedom", "notes", "thread", "rail", "chapter_intro", "reveal", "camera", "flows", "thread_pin", ...KNOB_FIELDS];
 
 // The original look: what a brief without a direction renders.
 export const DEFAULT_DIRECTION = Object.freeze({
@@ -50,8 +53,8 @@ export function resolveDirection(direction) {
 
 // One compact line for the build output.
 export function describeDirection(direction) {
-  const { pacing, motion, chrome, background, captions, transitions, tone, freedom, rail, thread, chapter_intro: intro, reveal } = direction;
-  const creative = [tone && `, tone ${tone}`, freedom && `, freedom ${freedom}`, rail && `, rail ${rail}`, thread && `, thread ${JSON.stringify(thread)}`, intro && `, chapter_intro ${intro}`, reveal && `, reveal ${reveal}`].filter(Boolean).join("");
+  const { pacing, motion, chrome, background, captions, transitions, tone, freedom, rail, thread, chapter_intro: intro, reveal, camera, flows, thread_pin: pin } = direction;
+  const creative = [tone && `, tone ${tone}`, freedom && `, freedom ${freedom}`, rail && `, rail ${rail}`, thread && `, thread ${JSON.stringify(thread)}`, intro && `, chapter_intro ${intro}`, reveal && `, reveal ${reveal}`, camera && `, camera ${camera}`, flows && `, flows ${flows}`, pin && `, thread_pin ${pin}`].filter(Boolean).join("");
   return `pacing ${pacing}, motion ${motion}, chrome ${chrome}, background ${background}, captions ${captions}, transitions ${[...new Set(transitions)].join("/")}${creative}`;
 }
 
@@ -82,19 +85,16 @@ function explicitKnobs(direction) {
   return Object.fromEntries(KNOB_FIELDS.filter((name) => direction[name] != null).map((name) => [name, direction[name]]));
 }
 
-// tone, freedom, notes, thread, rail, chapter_intro and reveal appear in the result only when set (so the original
-// look resolves unchanged); a null counts as unset, like a null knob. thread is the running example every scene
-// returns to; reveal "blueprint" and chapter_intro "on" are the opt-in screen fillers (visuals.md).
+// The opt-in creative fields: each appears in the result only when set (so the original look resolves unchanged); a
+// null counts as unset, like a null knob. thread is the running example every scene returns to; rail, chapter_intro,
+// reveal, camera, flows and thread_pin are the opt-in visuals (visuals.md).
+const CHOICES = { tone: TONES, freedom: FREEDOMS, rail: RAIL_VALUES, chapter_intro: CHAPTER_INTRO_VALUES, reveal: REVEAL_VALUES, camera: CAMERA_VALUES, flows: FLOWS_VALUES, thread_pin: THREAD_PIN_VALUES };
+const TEXTS = ["notes", "thread"];
+
 function creativeFields(direction) {
-  const { tone, freedom, notes, thread, rail, chapter_intro, reveal } = direction;
-  if (tone != null) assertOneOf("direction.tone", tone, TONES);
-  if (freedom != null) assertOneOf("direction.freedom", freedom, FREEDOMS);
-  if (rail != null) assertOneOf("direction.rail", rail, RAIL_VALUES);
-  if (chapter_intro != null) assertOneOf("direction.chapter_intro", chapter_intro, CHAPTER_INTRO_VALUES);
-  if (reveal != null) assertOneOf("direction.reveal", reveal, REVEAL_VALUES);
-  assertText("notes", notes);
-  assertText("thread", thread);
-  return Object.fromEntries(Object.entries({ tone, freedom, notes, thread, rail, chapter_intro, reveal }).filter(([, value]) => value != null));
+  for (const [field, allowed] of Object.entries(CHOICES)) if (direction[field] != null) assertOneOf(`direction.${field}`, direction[field], allowed);
+  for (const field of TEXTS) assertText(field, direction[field]);
+  return Object.fromEntries([...Object.keys(CHOICES), ...TEXTS].map((field) => [field, direction[field]]).filter(([, value]) => value != null));
 }
 
 function assertText(name, value) {

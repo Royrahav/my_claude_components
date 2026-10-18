@@ -1,6 +1,6 @@
 # Plan 2: no empty screens, and motion that feels like video
 
-Status: approved 2026-10-18, in progress. Lane: Full (dev-flow), 2 milestones, a review point at each.
+Status: implemented 2026-10-18 (M1 3c401e1, M2 next commit); review PASS on both, lows are follow-ups. Lane: Full (dev-flow), 2 milestones, a review point at each.
 RCA not required (a feature). Follows PLAN.md (coherence, rail, world), commit 2bf98a8.
 
 ## Why
@@ -41,14 +41,15 @@ empty; some layouts also stay sparse when fully revealed (s13: two small stats).
 
 5. Camera per scene (`direction.camera: drift`, default `push` = today's 1.02 push): a seeded,
    per-scene varied move (slow zoom in or out of about 4-6 %, plus a small pan, direction varying
-   scene to scene) so consecutive scenes never move the same way. Content stays inside the safe
-   margins at every frame.
+   scene to scene) so consecutive scenes never move the same way. Content stays on screen at every
+   frame; at the extreme of a 4-6 % zoom, full-width content reaches about 35-50 px from the edge
+   (accepted 2026-10-18: the zoom itself cannot keep a 96 px margin).
 6. Flowing connectors (`direction.flows: on`): dots stream continuously along the connecting lines
    in pipeline and decision scenes (and a kit helper `flow(lineId, t)` for signature scenes),
    starting once a line has drawn.
 7. Pinned running example (`direction.thread_pin: on`): a persistent layer (like the rail) showing
-   a small pill with the running example in a corner that does not collide with the rail, tag,
-   captions or content band. A scene may set `pin` (text) to rewrite it from that scene on (for example
+   a small pill with the running example (placed at the top center, accepted 2026-10-18) that does
+   not collide with the rail, tag, captions or content band. A scene may set `pin` (text) to rewrite it from that scene on (for example
    `smb://srvfs1/Reception` after Normalize), with a short morph; it hides on the title, summary and
    close.
 

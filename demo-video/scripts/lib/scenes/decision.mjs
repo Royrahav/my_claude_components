@@ -66,6 +66,7 @@ export default function decision(k, d, c) {
   const ty0 = c.cue(d.yes_at, auto[ti]);
   html.push(`<div id="${p("yl")}" class="${p("line")} ${p("yl")}" style="width:${span1 - span0 + 40}px"></div><div id="${p("yt")}" class="${p("lbl")}" style="left:${span0 + 10}px;top:${dcy - 34}px">${k.esc(d.yes_label ?? "Yes")}</div>`);
   k.draw("yl", ty0, 0.8);
+  k.flow("yl", ty0 + 0.8);
   k.fade("yt", ty0 + 0.2, 0.4);
   yes.forEach((y, i) => {
     const t = c.cue(y.at, auto[ti++]);

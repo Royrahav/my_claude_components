@@ -23,7 +23,8 @@ Camera push: every scene slowly scales from 1 to 1.02 around a point just above 
 (`k.ambient()`), and the sheet shows each scene near its end. The brief's `direction` may hide the
 eyebrow or the chapter tag, or drop the dotted grid; that is the chosen style, not a defect. So content placed exactly on the
 96px margins shows about 17 px further out (near x=79 and x=1841), and content near y=880 about
-8 px lower. That is not a defect: flag only what lies beyond it.
+8 px lower. With `camera: drift` (a 4-5.5 % zoom) margin content shows about 50-60 px further out at the extreme
+frame. That is not a defect: flag only what lies beyond it, or is clipped.
 
 `D check .` also prints layout failures (overflow, overlap): fix those the same way. If a defect
 depends on an animation state, run `D check . --mid` and read `review/contact-mid.jpg` once.

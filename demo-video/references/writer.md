@@ -20,7 +20,8 @@ they belong to production, after gate 1.
    with a bridge from the last one's limit ("so we add caching"), no term used before it is
    introduced.
 3. Design the structure (scenes.md, Designing the structure). Ask what this audience needs first
-   and what shape the content has; pick the pattern, or combine some, that fits. Never reuse one
+   and what shape the content has: a journey, a turn, a before/after, a day in someone's work, a
+   number, a question, a myth. Pick the pattern, or combine some, that fits. Never reuse one
    order by default: the last video's shape is not a template. Condense (below), drop scenes the
    facts can't fill, and pick the summary form (Summary rule).
 4. Propose a direction (scenes.md, Creative direction): the preset closest to the content's feel,

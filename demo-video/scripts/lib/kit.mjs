@@ -4,6 +4,7 @@
 // Ids/classes are prefixed with the scene id.
 
 import { DEFAULT_DIRECTION, TRANSITION_SECONDS, seededRandom } from "./direction.mjs";
+import { driftMove } from "./drift.mjs";
 import { backdropParts, chapterIntroParts } from "./fillers.mjs";
 import { isBeat, isSummary } from "./house-style.mjs";
 import { rgba, themeVars } from "./theme.mjs";
@@ -81,10 +82,13 @@ const CAMERA = { zoom: 1.35, seconds: 0.9, centerX: 960, centerY: 540 };
 // ghost stays under 0.2, the opacity below which HyperFrames' layout audit treats an element as not there, so a
 // ghost never counts as text overlapping the chapter intro or another element.
 const GHOST = { opacity: 0.18 };
+// direction.flows "on": dots per line, the seconds one trip takes (plus a seeded spread per line), their size.
+const FLOW = { dots: 3, period: 1.7, periodSpread: 0.5, seed: 31, size: 10, alpha: 0.85 };
 // The headline rises at a fixed time, not on a spoken cue, so it does not set when the first content cue is.
 const HEADLINE = "h";
 
-export function createScene({ id, theme, fontsCss, brief, scene, duration, direction = DEFAULT_DIRECTION }) {
+// `index` is the scene's position in the video (it picks the camera drift's move).
+export function createScene({ id, theme, fontsCss, brief, scene, duration, direction = DEFAULT_DIRECTION, index = 0 }) {
   const p = (n) => `${id}-${n}`;
   const css = [];
   const html = [];
@@ -96,6 +100,7 @@ export function createScene({ id, theme, fontsCss, brief, scene, duration, direc
   const scaled = (seconds) => (durationScale === 1 ? seconds : f2(seconds * durationScale));
   const backgroundLayer = BACKGROUNDS[direction.background].layer;
   let sparkBursts = 0;
+  let flowLines = 0;
   const cameraStates = new Map();
   const blueprint = direction.reveal === "blueprint" && !isBeat(scene ?? {});
   const shown = []; // what the kit reveals: { target, from (visible from), cue (revealed at) }
@@ -217,10 +222,39 @@ export function createScene({ id, theme, fontsCss, brief, scene, duration, direc
       cameraStates.set(s, to);
       tw(`tl.fromTo("${sel(s)}",{x:${from.x},y:${from.y},scale:${from.scale},transformOrigin:"0 0"},{x:${to.x},y:${to.y},scale:${to.scale},transformOrigin:"0 0",duration:${scaled(dur)},ease:"${eases.draw}"${render}},${f2(t)});`);
     },
-    // The background layer drifts and the camera pushes in slowly; a plain background has no layer.
+    // The background layer drifts and the camera moves slowly: a 2 % push, or with direction.camera "drift" this
+    // scene's own move. A scene that drives its own stage with `camera` keeps the push, so the two never stack.
     ambient(until = duration) {
       if (backgroundLayer) tw(`tl.fromTo("#${p(backgroundLayer)}",{x:0,y:0},{x:-40,y:-20,duration:${f2(until)},ease:"none"},0);`);
-      tw(`tl.fromTo("#${p("cam")}",{scale:1},{scale:1.02,duration:${f2(until)},ease:"none"},0);`);
+      const drifting = direction.camera === "drift" && cameraStates.size === 0;
+      if (!drifting) return tw(`tl.fromTo("#${p("cam")}",{scale:1},{scale:1.02,duration:${f2(until)},ease:"none"},0);`);
+      const { from, to } = driftMove(index);
+      const state = ({ scale, x, y }) => `{scale:${scale},x:${x},y:${y}`;
+      tw(`tl.fromTo("#${p("cam")}",${state(from)}},${state(to)},duration:${f2(until)},ease:"none"},0);`);
+    },
+    // Dots stream along a line once it has drawn (direction.flows "on"; otherwise nothing). `lineId` is an empty
+    // element of k.html laid out as a line (it keeps its own box): the dots ride inside it, so no geometry is
+    // needed. `axis` is "x" for a line that draws left to right, "y" for one that draws downward. Start at `t`, the
+    // time the line has finished drawing; the stream runs to the end of the scene.
+    flow(lineId, t, { axis = "x" } = {}) {
+      if (direction.flows !== "on") return;
+      const lineIndex = flowLines++;
+      const random = seededRandom(FLOW.seed + lineIndex);
+      const period = f2(FLOW.period + random() * FLOW.periodSpread);
+      const streams = flowStreams(t, period, duration);
+      const lineHtml = html.findIndex((part) => part.includes(`<div id="${p(lineId)}"`));
+      const empty = new RegExp(`(<div id="${p(lineId)}"[^>]*>)(</div>)`);
+      if (lineHtml < 0 || !empty.test(html[lineHtml])) throw new Error(`${id}: flow needs an empty <div id="${p(lineId)}"> in the scene html`);
+      if (lineIndex === 0) css.push(flowCss(p, theme));
+      const name = (kind, n) => p(`${kind}${lineIndex}_${n}`);
+      const dots = streams.map(({ n }) => `<i id="${name("fl", n)}" class="${p("fcar")} ${p(`f${axis}`)}"><b id="${name("fd", n)}" class="${p("fdot")}"></b></i>`).join("");
+      html[lineHtml] = html[lineHtml].replace(empty, `$1${dots}$2`);
+      const shift = axis === "y" ? "yPercent" : "xPercent";
+      for (const { n, start, trips } of streams) {
+        tw(`tl.fromTo("#${name("fl", n)}",{${shift}:-100},{${shift}:0,duration:${period},ease:"none",repeat:${trips - 1}},${start});`);
+        // The dot fades in over the first half of a trip and out over the second (a yoyo), so it is gone at each trip's end.
+        tw(`tl.fromTo("#${name("fd", n)}",{opacity:0},{opacity:1,duration:${f2(period / 2)},ease:"none",yoyo:true,repeat:${2 * trips - 1}},${start});`);
+      }
     },
     // When the scene shows something beyond its background and chrome: each revealed element from its reveal (from
     // the scene start when it waits as a blueprint ghost) until a template fades it out, plus the fillers.
@@ -231,6 +265,24 @@ export function createScene({ id, theme, fontsCss, brief, scene, duration, direc
   };
   return k;
 }
+
+// Each stream is a full-length carrier inside the line with a dot on its leading end; sliding the carrier by its
+// own length (a percentage, so transforms only) carries the dot along the whole line.
+const flowCss = (p, theme) => {
+  const { size } = FLOW;
+  return `.${p("fcar")}{position:absolute;inset:0;pointer-events:none}
+.${p("fdot")}{position:absolute;width:${size}px;height:${size}px;border-radius:50%;opacity:0;background:${rgba(theme.colors.accent, FLOW.alpha)}}
+.${p("fx")} .${p("fdot")}{right:-${size / 2}px;top:50%;margin-top:-${size / 2}px}
+.${p("fy")} .${p("fdot")}{bottom:-${size / 2}px;left:50%;margin-left:-${size / 2}px}`;
+};
+
+// The dots of a stream: each starts a share of a trip after the one before and makes as many whole trips as fit before
+// the scene ends (a dot that cannot make one is left out), so no tween outlasts the scene.
+const flowStreams = (t, period, duration) =>
+  Array.from({ length: FLOW.dots }, (_, n) => {
+    const start = f2(t + (period * n) / FLOW.dots);
+    return { n, start, trips: Math.floor((duration - start) / period + 1e-9) };
+  }).filter(({ trips }) => trips >= 1);
 
 const exitAfter = (exits, target, from) => exits.find((x) => x.target === target && x.at > from)?.at ?? Infinity;
 

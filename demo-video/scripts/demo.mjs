@@ -164,7 +164,7 @@ async function build() {
     const tplPath = templatePath(root, s.type);
     if (!existsSync(tplPath)) throw new Error(`${s.id}: unknown scene type "${s.type}" (not in the skill or <project>/scenes/)`);
     const tpl = templateFor(await import(pathToFileURL(tplPath).href), s);
-    const k = createScene({ id: s.id, theme, fontsCss, brief, scene: s, duration: stl.duration, direction });
+    const k = createScene({ id: s.id, theme, fontsCss, brief, scene: s, duration: stl.duration, direction, index: i });
     const res = tpl(k, s.data ?? {}, makeCue(stl, warnings)) ?? {};
     const intro = chapterIntroPlan({ direction, scenes, i, k, entrance: transitions[i], warnings });
     writeFileSync(join(f.comps, `${s.id}.html`), wrap(k, { fontsCss, chrome: res.chrome !== false, eyebrow: brief.eyebrow ?? brief.product, entrance: transitions[i], intro }));
@@ -175,7 +175,7 @@ async function build() {
   const caps = brief.captions !== false ? writeCaptions(root, tl, theme, fontsCss, direction.captions) : 0;
   const sfxOn = brief.sfx !== false && existsSync(join(f.sfx, "pop.mp3"));
   if (brief.sfx !== false && !sfxOn) warnings.push("SFX files missing: run `sfx` (or set brief.sfx false)");
-  const layers = mainLayers({ direction, theme, tl, scenes, transitions });
+  const layers = mainLayers({ direction, theme, tl, scenes, transitions, fontsCss });
   warnings.push(...layers.warnings);
   writeLayerFiles(f.comps, layers);
   const { sfx } = writeIndex(root, tl, scenes, sceneSfx, { canvas: theme.colors.canvas, captions: brief.captions !== false, sfxOn, transitions, layers });

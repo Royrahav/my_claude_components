@@ -31,6 +31,9 @@ is the scene's `data`.
   the headline (`title: true`) or chrome and above `bottom` (default 860). Use it for the main content block.
 - **Motion** (seek-safe `fromTo`; `t` is in seconds from the scene start):
   - Reveals: `rise(id, t, dy?, dur?)`, `pop`, `slide(id, t, dx?)`, `fade`, `grow`, `type` (clip reveal).
+  - Elements that take each other's place in one slot (labels, words, values) pass `{ ghost: false }` as the
+    last argument, `rise(id, t, dy, dur, opts)`, `pop|punch|grow(id, t, dur, opts)`, `slide(id, t, dx, dur, opts)`,
+    `fade(id, t, dur, opts)`; otherwise `reveal: blueprint` shows every one of them stacked as a ghost.
   - Lines: `draw` (scaleX), `drawY`.
   - Other: `to(id, t, props, dur?, ease?)`, `count(id, value, t, dur?, decimals?, comma?)`, `flip(toggleId, t)`.
   - `direction.motion: "lively"` shortens the reveals and gives them livelier eases on its own;

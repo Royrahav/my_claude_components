@@ -121,6 +121,9 @@ function revealFirstSize(k, size, t) {
   k.sound("pop", t, 0.4);
 }
 
+// The labels of size i take the place of size i - 1, so they wait unseen (under reveal blueprint they would stack as ghosts).
+const REPLACES_PREVIOUS = { ghost: false };
+
 // The sheet and its dimension lines take size i, scaled against the first size around their centers, while
 // the previous labels leave and the new ones arrive. The ghost shows the first size from the first reshape on.
 function reshapeTo(k, sizes, i, t, scale) {
@@ -133,9 +136,9 @@ function reshapeTo(k, sizes, i, t, scale) {
   k.to("dw", t, { scaleX: sx, y: r1(((size.height - base.height) * scale) / 2) }, RESHAPE, "power2.inOut");
   k.to("dh", t, { scaleY: sy, x: r1(((size.width - base.width) * scale) / 2) }, RESHAPE, "power2.inOut");
   for (const label of ["n", "wl", "hl"]) k.to(`${label}${i - 1}`, t, { opacity: 0, y: -12 }, 0.3, "power2.in");
-  k.rise(`n${i}`, t + 0.45, 16, 0.5);
-  k.fade(`wl${i}`, t + RESHAPE - 0.2, 0.4);
-  k.fade(`hl${i}`, t + RESHAPE - 0.2, 0.4);
+  k.rise(`n${i}`, t + 0.45, 16, 0.5, REPLACES_PREVIOUS);
+  k.fade(`wl${i}`, t + RESHAPE - 0.2, 0.4, REPLACES_PREVIOUS);
+  k.fade(`hl${i}`, t + RESHAPE - 0.2, 0.4, REPLACES_PREVIOUS);
   k.sound("whoosh", t, 0.35);
 }
 

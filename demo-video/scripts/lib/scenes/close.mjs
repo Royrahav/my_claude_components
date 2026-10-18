@@ -44,7 +44,7 @@ export default function close(k, d, c) {
 
   if (logo) k.grow("logo", 0.3, 0.8);
   k.rise("t1", 0.7, 24, 0.7);
-  phrases.forEach((_, i) => k.rise(`ph${i}`, pT[i], 16, 0.5));
+  phrases.forEach((_, i) => k.rise(`ph${i}`, pT[i], 16, 0.5, SPOKEN));
   if (phrases.length && sweep) k.draw("ul", pT[phrases.length - 1] + 0.5, 0.6);
   if (d.ref) k.fade("ref", (pT[pT.length - 1] ?? 1.5) + 0.8, 0.6);
 
@@ -65,6 +65,9 @@ const LINE_MIN = 80;
 const WORD_STEP = { min: 0.12, max: 0.4 };
 const CALLBACK_GAP = 1.4; // the answer lands at least this long after the hook
 const DIMMED_HOOK = 0.4;
+// The close's tagline, punchline and answer are said before they are shown, so under reveal blueprint they stay hidden
+// until their cue instead of showing as ghosts.
+const SPOKEN = { ghost: false };
 
 const DEFAULT_REF_TOP = 790; // the default variant's ref line; the other variants share SHARED_REF_TOP
 const SHARED_REF_TOP = 810;
@@ -125,9 +128,9 @@ ${smallLogoCss(p)}`);
   html.push(refHtml(k, d));
 
   const times = words.map((_, i) => settle(t0 + i * step));
-  times.forEach((t, i) => k.rise(`w${i}`, t, 28, 0.4));
+  times.forEach((t, i) => k.rise(`w${i}`, t, 28, 0.4, SPOKEN));
   const lastT = times[times.length - 1];
-  if (d.sub) k.fade("psub", settle(lastT + 0.5), 0.6);
+  if (d.sub) k.fade("psub", settle(lastT + 0.5), 0.6, SPOKEN);
   k.sound("whoosh", t0, 0.3);
   return finishClose(k, c, d, { logo, chimeAt: lastT, refAt: settle(lastT + 1) });
 }
@@ -193,7 +196,7 @@ ${smallLogoCss(p)}`);
   k.rise("hk", hookT, 20, 0.5);
   k.draw("hs", answerT, 0.4);
   k.to("hk", answerT + 0.1, { opacity: DIMMED_HOOK }, 0.5);
-  k.punch("an", answerT + 0.3, 0.5);
+  k.punch("an", answerT + 0.3, 0.5, SPOKEN);
   k.sound("whoosh", answerT, 0.35);
   return finishClose(k, c, d, { logo, chimeAt: answerT + 0.3, refAt: settle(answerT + 1.2) });
 }

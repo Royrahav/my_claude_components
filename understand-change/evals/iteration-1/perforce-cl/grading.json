@@ -1,0 +1,15 @@
+{
+ "expectations": [
+  {
+   "text": "prepare.py --p4 <CL> --shelved writes files.json with the CL files and statuses",
+   "passed": false,
+   "evidence": "not run: no test CL available in this session; code path implemented, untested"
+  }
+ ],
+ "summary": {
+  "passed": 0,
+  "failed": 1,
+  "total": 1,
+  "pass_rate": 0.0
+ }
+}

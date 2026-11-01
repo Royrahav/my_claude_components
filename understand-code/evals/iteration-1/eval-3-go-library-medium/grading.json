@@ -1,0 +1,35 @@
+{
+ "expectations": [
+  {
+   "text": "the build exits 0 with 0 unresolved refs",
+   "passed": true,
+   "evidence": "built C:/Users/roy.r/AppData/Local/Temp/claude/C--GitProjects-printer-server/cec07410-1fbb-400b-8801-d6bf49c3c451/scratc | refs: 125 checked, 0 unresolved; file symbols: 0 files with misses"
+  },
+  {
+   "text": "the walkthrough explains at least 80% of in-scope code files and every code module",
+   "passed": true,
+   "evidence": "explain 5 of 5 in-scope code files; 3 of 3 code modules"
+  },
+  {
+   "text": "no beat anchor is missing from its excerpt",
+   "passed": true,
+   "evidence": "no anchor warnings"
+  },
+  {
+   "text": "4-8 scenarios covering the main path, the repeat and at least one failure",
+   "passed": true,
+   "evidence": "8 scenarios: first-print-create repeat-print-found leftover-repair repair-proxy-route inconclusive-printer lpadmin-fails failure-from-memory queue-full"
+  },
+  {
+   "text": "every narration line has a recorded Kokoro clip",
+   "passed": true,
+   "evidence": "voice: 276 of 276 lines"
+  }
+ ],
+ "summary": {
+  "passed": 5,
+  "failed": 0,
+  "total": 5,
+  "pass_rate": 1.0
+ }
+}

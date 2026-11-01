@@ -1,0 +1,56 @@
+{
+  "skill_name": "understand-change",
+  "evals": [
+    {
+      "id": 1,
+      "name": "large-github-pr",
+      "prompt": "Look at this PR: https://github.com/LabOS-co/printer-service/pull/4 - I need to 100% understand what was done here, I'll be maintaining it.",
+      "expected_output": "A published change map with Map, Walkthrough, Simulator, Files and Commits tabs; every claim grounded in real code; a narrated walkthrough whose line marker follows the voice.",
+      "files": [],
+      "assertions": [
+        {"id": "refs-resolve", "text": "Every file → symbol reference resolves in the repo (build reports 0 unresolved)"},
+        {"id": "diff-exact", "text": "files.json matches the PR (91 files, +14110/-332) and the excerpts come from diff_base..sha"},
+        {"id": "coverage", "text": "The walkthrough explains at least 80% of the changed code files"},
+        {"id": "beats-anchored", "text": "Every beat anchor occurs in the excerpt shown (no 'not in the excerpt shown' warning)"},
+        {"id": "narration-clean", "text": "narrate.py lint reports no spoken IDs, paths or hashes"},
+        {"id": "voice-complete", "text": "Every narration line has a recorded clip in the chosen voice"},
+        {"id": "playback", "text": "Real-clock browser playback plays clips to the end and advances on its own"}
+      ]
+    },
+    {
+      "id": 2,
+      "name": "script-smoke",
+      "prompt": "python scripts/selftest.py",
+      "expected_output": "PASS with all checks: prepare, build, ref resolution, coverage count, auto-placement, beat anchors, story merge, problem order, real-diff excerpts, diff range, simulator links.",
+      "files": [],
+      "assertions": [
+        {"id": "selftest-pass", "text": "selftest.py prints PASS and exits 0"}
+      ]
+    },
+    {
+      "id": 3,
+      "name": "perforce-cl",
+      "prompt": "Explain shelved CL 123456 to me, I need to own it.",
+      "expected_output": "prepare.py --p4 builds files.json/meta.json from p4 describe; excerpts come from the workspace files.",
+      "files": [],
+      "assertions": [
+        {"id": "p4-prepare", "text": "prepare.py --p4 <CL> --shelved writes files.json with the CL's files and statuses"}
+      ]
+    },
+    {
+      "id": 4,
+      "name": "stakeholder-brief",
+      "prompt": "Look at this PR: https://github.com/LabOS-co/printer-service/pull/4 - I need to present it to the stakeholders for the release and the risk review.",
+      "expected_output": "The change map gains a Brief tab first in the tab bar (the page still opens on Map, #brief opens it): a step-by-step stakeholder deck with business value, before/after, the system, 1-3 major use-case flows, one risk and release slide and takeaways, speaker notes on every slide and step, and a Present mode.",
+      "files": [],
+      "assertions": [
+        {"id": "deck-builds", "text": "deck.json builds with exit 0, prints 'deck: N slides (F flows), S reveal steps; 0 lint' and every mitigation ref resolves"},
+        {"id": "deck-shape", "text": "title, value, before_after, system, 1-3 flow slides tied to real scenario ids, risk, takeaways, in that order"},
+        {"id": "deck-notes", "text": "every slide and every reveal step carries a speaker note"},
+        {"id": "deck-plain", "text": "no shown text reads as code (jargon lint 0) and every title stat has a source"},
+        {"id": "brief-tab", "text": "Brief is the first tab, the page opens on Map, #brief opens the deck, Next/Back/keys reveal steps and Present fits the screen"},
+        {"id": "no-regression", "text": "without deck.json the embedded data, build stdout and lint.txt are identical to the pre-change engine on real past work folders"}
+      ]
+    }
+  ]
+}

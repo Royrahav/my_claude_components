@@ -1,0 +1,30 @@
+{
+ "expectations": [
+  {
+   "text": "deck.json builds with exit 0 and prints the deck line with 0 lint",
+   "passed": false,
+   "evidence": "Not run on a real code map: only the selftest sample deck in code mode (PASS: 45 checks)"
+  },
+  {
+   "text": "no before_after slide; 1-3 flow slides tied to real scenario ids",
+   "passed": false,
+   "evidence": "Not run on a real code map"
+  },
+  {
+   "text": "every slide and reveal step carries a speaker note",
+   "passed": false,
+   "evidence": "Not run on a real code map"
+  },
+  {
+   "text": "without deck.json the build output and page data are identical to the pre-change engine",
+   "passed": true,
+   "evidence": "regress.py: the printgateway code map (code mode, 56 items, 8 scenarios) built by baseline and new understand-code engines: stdout, data JSON and lint.txt identical"
+  }
+ ],
+ "summary": {
+  "passed": 1,
+  "failed": 3,
+  "total": 4,
+  "pass_rate": 0.25
+ }
+}

@@ -1,0 +1,35 @@
+{
+ "expectations": [
+  {
+   "text": "the build exits 0 with 0 unresolved refs",
+   "passed": true,
+   "evidence": "built C:/Users/roy.r/AppData/Local/Temp/claude/C--GitProjects-printer-server/cec07410-1fbb-400b-8801-d6bf49c3c451/scratc | refs: 67 checked, 0 unresolved; file symbols: 0 files with misses"
+  },
+  {
+   "text": "C++ refs use File.cpp → Class::Method and each excerpt starts at the definition",
+   "passed": true,
+   "evidence": "19 Class::Method items; not at definition: none"
+  },
+  {
+   "text": "callers outside the class appear as context modules with real edges",
+   "passed": true,
+   "evidence": "context: dlmanager, isend, restclient, secrets; 11 edges"
+  },
+  {
+   "text": "meta.version names the synced CL; no diff_base",
+   "passed": true,
+   "evidence": "version=synced to CL 933649"
+  },
+  {
+   "text": "the maintenance checklist names the guarding unit test where it applies",
+   "passed": true,
+   "evidence": "items naming the test: route-header, err-result"
+  }
+ ],
+ "summary": {
+  "passed": 5,
+  "failed": 0,
+  "total": 5,
+  "pass_rate": 1.0
+ }
+}

@@ -1,0 +1,45 @@
+{
+ "expectations": [
+  {
+   "text": "Every file → symbol reference resolves in the repo (build reports 0 unresolved)",
+   "passed": true,
+   "evidence": "final build: \"refs: 156 checked, 0 unresolved\""
+  },
+  {
+   "text": "files.json matches the PR (91 files, +14110/-332) and the excerpts come from diff_base..sha",
+   "passed": true,
+   "evidence": "prepare.py --pr: 91 files, +14110/-332, diff 8bdf597..fdd0e2e; GitHub PR files API: 91"
+  },
+  {
+   "text": "The walkthrough explains at least 80% of the changed code files",
+   "passed": false,
+   "evidence": "final build: \"57 items explain 22 of 30 changed code files\" (73%); unexplained include internal/ipp/wire.go and capabilities.go"
+  },
+  {
+   "text": "Every beat anchor occurs in the excerpt shown",
+   "passed": true,
+   "evidence": "final build: no \"not in the excerpt shown\" warning; 275 beats"
+  },
+  {
+   "text": "narrate.py lint reports no spoken IDs, paths or hashes",
+   "passed": true,
+   "evidence": "narrate: \"402 of 402 lines have a written script\", no lint warnings"
+  },
+  {
+   "text": "Every narration line has a recorded clip in the chosen voice",
+   "passed": true,
+   "evidence": "final build: \"voice: 402 of 402 lines have a recorded clip\" (af_heart)"
+  },
+  {
+   "text": "Real-clock browser playback plays clips to the end and advances on its own",
+   "passed": true,
+   "evidence": "Edge via CDP, real clock: line marker moved 9s/17s/25s/35s/43s/54s across beats and changes"
+  }
+ ],
+ "summary": {
+  "passed": 6,
+  "failed": 1,
+  "total": 7,
+  "pass_rate": 0.86
+ }
+}

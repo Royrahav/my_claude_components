@@ -1,0 +1,45 @@
+{
+ "expectations": [
+  {
+   "text": "the build exits 0 with 0 unresolved refs",
+   "passed": true,
+   "evidence": "built C:/Users/roy.r/AppData/Local/Temp/claude/C--GitProjects-printer-server/cec07410-1fbb-400b-8801-d6bf49c3c451/scratc | refs: 63 checked, 0 unresolved; file symbols: 0 files with misses"
+  },
+  {
+   "text": "prepare.py --code sized the scope (SMALL)",
+   "passed": true,
+   "evidence": "meta.mode=code kind=Library"
+  },
+  {
+   "text": "the walkthrough explains every in-scope code file and every code module",
+   "passed": true,
+   "evidence": "explain 2 of 2 in-scope code files; 2 of 2 code modules"
+  },
+  {
+   "text": "no beat anchor is missing from its excerpt",
+   "passed": true,
+   "evidence": "no anchor warnings"
+  },
+  {
+   "text": "2-4 scenarios, each entering from a real caller outside the package",
+   "passed": true,
+   "evidence": "4 scenarios; entering from outside the scope: ipp-address, windows-name, shorthand-400, public-403"
+  },
+  {
+   "text": "the page is in code mode: meta.mode = code, no diff, no commits",
+   "passed": true,
+   "evidence": "mode=code diff_base=None commits=0"
+  },
+  {
+   "text": "every narration line has a recorded Kokoro clip",
+   "passed": true,
+   "evidence": "voice: 155 of 155 lines"
+  }
+ ],
+ "summary": {
+  "passed": 7,
+  "failed": 0,
+  "total": 7,
+  "pass_rate": 1.0
+ }
+}

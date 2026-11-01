@@ -24,7 +24,7 @@ This skill carries its own copy of the engine it shares with `understand-change`
 `S` is this skill's folder, `W` is a scratch folder (scratchpad or temp, never the repo).
 
 Maintainers: the engine files (`scripts/` except `selftest.py`, `assets/prmap.html`, `references/story.md`,
-`narration.md`, `prmap-schema.md`, `deck.md`) are a copy. Edit them in `understand-change`, then run
+`narration.md`, `prmap-schema.md`, `deck.md`, `assets/brands/`) are a copy. Edit them in `understand-change`, then run
 `tools/sync_understand_engine.py` at the skills repo root and both skills' `scripts/selftest.py`.
 
 ## Pipeline
@@ -46,7 +46,7 @@ Same steps and order as understand-change, so two runs on the same scope give th
    code-mode differences below.
 3. **Inventory + tracer** in parallel, with briefs 1 and 2 from `references/briefs.md`: `inventory.json` and
    `scenarios.json`.
-4. **Story writers** with brief 3: `story_<part>.json` per writer, and the **deck writer** with brief 4 (`deck.json`). Writers print each excerpt with
+4. **Story writers** with brief 3: `story_<part>.json` per writer, and the **deck writer** with brief 4 (`deck.json`). Brand: code in a labOS codebase (Perforce tree under `C:\P4SPACE`, or a labOS repo) gets `"brand": {"name": "labOS", "logo": "labos"}` with no question; for any other codebase ask the user once (AskUserQuestion, batched with other questions) for the company or product name and a logo file, or none. Writers print each excerpt with
    `S/scripts/show_snippet.py`, so beats anchor to lines the reader will actually see.
 5. **Build to verify**: `python S/scripts/build_prmap.py --dir W W/out.html --repo <root>`. It checks every ref
    and beat anchor and reports how many in-scope code files and modules the walkthrough explains. Fix every

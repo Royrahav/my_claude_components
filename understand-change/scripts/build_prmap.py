@@ -9,7 +9,7 @@ WORK holds:
   inventory.json  {modules: [{id, name, path, job, status, entry}], files: [{path, module, kind, job, change, symbols}], edges: [{from, to, label}]}
   layout.json     {summary, nodes: {id: {at: [col, row], name?, path?, job?, status?}}}   (positions + nodes outside the repo)
   scenarios.json  {request_defaults: {base, token_header}, scenarios: [{id, title, purpose, request, env, steps: [{node, ref, title, does, in, out, decision, fail}], result}]}
-  deck.json       optional, the stakeholder deck of the Brief tab (schema: references/deck.md)
+  deck.json       optional, the stakeholder deck of the Brief tab, with optional terms and brand logo (schema: references/deck.md)
 Prints a few summary lines and writes every lint finding to WORK/lint.txt; exit 2 if refs are unresolved, 3 if the inputs are malformed.
 """
 import argparse
@@ -29,7 +29,7 @@ from refs import Resolver, split_ref  # noqa: E402
 from narrate import narration_items  # noqa: E402
 from snippets import file_units, snippet  # noqa: E402
 from explain import changed_gaps, item_lint, jumps, resolve_beats, span_gaps  # noqa: E402
-from deck import deck_errors, deck_lint, deck_refs, deck_summary  # noqa: E402
+from deck import deck_errors, deck_lint, deck_refs, deck_summary, embed_brand  # noqa: E402
 
 TEMPLATE = os.path.join(HERE, '..', 'assets', 'prmap.html')
 WORD_LIMITS = {'does': 26, 'title': 8, 'decision': 22, 'job': 18, 'change': 20}
@@ -282,7 +282,11 @@ def main():
     placed = auto_place(modules, flows, first)
     if placed:
         warns.append('auto-placed on the map (set layout.nodes.<id>.at to override): ' + ', '.join(placed))
-    errs += deck_errors(deck) if deck or os.path.exists(os.path.join(a.dir, 'deck.json')) else []
+    deck_errs = deck_errors(deck) if deck or os.path.exists(os.path.join(a.dir, 'deck.json')) else []
+    errs += deck_errs
+    if deck and not deck_errs:
+        page_deck, brand_errs = embed_brand(deck, a.dir)
+        errs += brand_errs
     if errs:
         print('prmap: malformed')
         for e in errs:
@@ -360,7 +364,7 @@ def main():
         'story': story,
     }
     if deck:
-        data['deck'] = deck
+        data['deck'] = page_deck
     out_dir = os.path.dirname(os.path.abspath(a.out))
     data['voice'], published = voice_track(a.dir, None if a.standalone else out_dir) if data['scenarios'] or story else ({}, {})
     voiced = sum(1 for v in data['voice'].values() if v.get('src'))

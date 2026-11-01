@@ -33,7 +33,7 @@ with fixed briefs. `S` is this skill's folder; `W` is a scratch folder (scratchp
    (outside nodes, `problem_order`, a one-sentence `summary`); see `references/prmap-schema.md`.
 3. **Inventory + tracer** in parallel, with briefs 1 and 2 from `references/briefs.md`: `inventory.json` (every
    file's job and change, modules, real import edges) and `scenarios.json` (the simulator plus its narration).
-4. **Story writers** with brief 3: `story_<part>.json` per writer, and the **deck writer** with brief 4 (`deck.json`). Writers print each item's excerpt with
+4. **Story writers** with brief 3: `story_<part>.json` per writer, and the **deck writer** with brief 4 (`deck.json`). Brand: a change in a labOS codebase (Perforce tree under `C:\P4SPACE`, or a labOS repo) gets `"brand": {"name": "labOS", "logo": "labos"}` with no question; for any other codebase ask the user once (AskUserQuestion, batched with other questions) for the company or product name and a logo file, or none. Writers print each item's excerpt with
    `S/scripts/show_snippet.py`, so beats anchor to lines the reader will actually see.
 5. **Build to verify**: `python S/scripts/build_prmap.py --dir W W/out.html --repo <root>`. It merges the story
    parts, extracts every excerpt from the real diff, checks every ref and beat anchor, places unplaced nodes,
@@ -69,7 +69,7 @@ with fixed briefs. `S` is this skill's folder; `W` is a scratch folder (scratchp
 
 ## The engine (maintainers)
 
-The scripts (except `selftest.py`), `assets/prmap.html` and `references/{story,narration,prmap-schema,deck}.md` are
+The scripts (except `selftest.py`), `assets/prmap.html`, `assets/brands/` and `references/{story,narration,prmap-schema,deck}.md` are
 the engine; they also handle code mode (`prepare.py --code`, `meta.mode = "code"`). The sibling skill
 `understand-code` carries an identical copy, so each skill folder installs alone. This folder is the source: edit
 the engine here, then run `tools/sync_understand_engine.py` at the skills repo root and both skills'

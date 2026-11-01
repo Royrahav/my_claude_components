@@ -18,6 +18,7 @@ ENGINE = ['scripts/build_prmap.py', 'scripts/collect_change.py', 'scripts/collec
           'scripts/narrate.py', 'scripts/prepare.py', 'scripts/refs.py', 'scripts/show_snippet.py', 'scripts/snippets.py',
           'scripts/deck.py', 'scripts/deck_selftest.py', 'assets/prmap.html', 'references/narration.md', 'references/prmap-schema.md', 'references/story.md',
           'references/deck.md']
+ENGINE += sorted('assets/brands/' + name for name in os.listdir(os.path.join(ROOT, 'understand-change', 'assets', 'brands')))  # every brand logo travels
 
 
 def drift():

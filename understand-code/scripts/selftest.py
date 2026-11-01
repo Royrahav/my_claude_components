@@ -12,7 +12,7 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from collect_code import code_size  # noqa: E402
-from deck_selftest import deck_checks  # noqa: E402
+from deck_selftest import deck_checks, page_data  # noqa: E402
 from snippets import find_block, snippet  # noqa: E402
 
 GREET = ('def greet(name):\n    if not name:\n        raise ValueError("name is required")\n    return "hello " + name\n\n\n'
@@ -106,7 +106,7 @@ def main():
     if os.path.exists(out):
         with open(out, encoding='utf-8') as f:
             page = f.read()
-        data = json.loads(page.split('<script type="application/json" id="data">', 1)[1].split('</script>', 1)[0].replace('<\\/', '</'))
+        data = page_data(page)
         items = {it['id']: it for p in data['story']['problems'] for it in p['items']}
         long_lines = [t for _, t in items['r']['snippet']['lines']]
         checks += [

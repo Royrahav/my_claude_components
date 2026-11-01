@@ -12,7 +12,7 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from explain import changed_gaps, item_lint, jumps, resolve_beats, span_gaps, uncovered  # noqa: E402
-from deck_selftest import deck_checks  # noqa: E402
+from deck_selftest import deck_checks, page_data  # noqa: E402
 from refs import method_in  # noqa: E402
 from snippets import GAP, _focus, _numbers, find_block, snippet  # noqa: E402
 
@@ -198,7 +198,7 @@ def main():
     if os.path.exists(out):
         with open(out, encoding='utf-8') as f:
             page = f.read()
-        data = json.loads(page.split('<script type="application/json" id="data">', 1)[1].split('</script>', 1)[0].replace('<\\/', '</'))
+        data = page_data(page)
         story = data.get('story') or {}
         items = [it for p in story.get('problems', []) for it in p['items']]
         checks += [

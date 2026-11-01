@@ -3,11 +3,16 @@
 
 Schema and writing rules: references/deck.md. build_prmap.py calls this only when deck.json exists.
 """
+import base64
+import os
 import re
 
 SLIDE_TYPES = ['title', 'value', 'before_after', 'system', 'flow', 'risk', 'takeaways']
 LEVELS = ['low', 'medium', 'high']
 MAX_FLOWS = 3
+MAX_TERMS, TERM_MEANS_WORDS = 8, 15
+BRAND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'assets', 'brands')
+LOGO_TYPES = {'.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp'}
 RANGES = {'cards': (2, 4), 'blocks': (3, 7), 'actors': (2, 5), 'steps': (2, 7), 'areas': (1, 6), 'points': (2, 4), 'stats': (0, 4)}
 # Product, company and technology names that look like code to a pattern but are plain words to a stakeholder.
 PRODUCT_NAMES = {'labos', 'postgresql', 'mysql', 'mongodb', 'iphone', 'ipad', 'github', 'gitlab', 'javascript', 'typescript', 'node.js', 'vue.js',
@@ -31,7 +36,7 @@ def reveal_steps(sl):
 OBJECT_LISTS = ('stats', 'cards', 'blocks', 'links', 'actors', 'steps', 'areas', 'mitigations')
 OBJECTS = ('before', 'after')
 TEXT_LISTS = ('points', 'watch', 'step_notes')
-TEXT_FIELDS = ('title', 'scenario', 'ref', 'id', 'from', 'to')
+TEXT_FIELDS = ('title', 'scenario', 'ref', 'id', 'from', 'to', 'when')
 
 
 def shape_errors(n, sl):
@@ -47,12 +52,30 @@ def shape_errors(n, sl):
     return ['deck slide %d: "%s" must be text' % (n, k) for x in entries for k in TEXT_FIELDS if k in x and not isinstance(x[k], str)]
 
 
+def top_level_errors(deck):
+    """Wrong shapes in the deck's own fields (title, terms, brand), so later checks can trust the types."""
+    out = ['deck: "title" must be text'] if 'title' in deck and not isinstance(deck['title'], str) else []
+    terms, brand = deck.get('terms', []), deck.get('brand', {'name': ''})
+    if not (isinstance(terms, list) and all(isinstance(t, dict) for t in terms)):
+        out.append('deck: "terms" must be a list of objects')
+    else:
+        out += ['deck term %d: "%s" must be text' % (i, k) for i, t in enumerate(terms, 1) for k in ('term', 'means') if k in t and not isinstance(t[k], str)]
+        out += ['deck term %d: needs a "term"' % i for i, t in enumerate(terms, 1) if not t.get('term')]
+    if not isinstance(brand, dict):
+        out.append('deck: "brand" must be an object')
+    else:
+        out += ['deck brand: "%s" must be text' % k for k in ('name', 'logo') if k in brand and not isinstance(brand[k], str)]
+        out += ['deck brand: needs a "name"'] if 'brand' in deck and not brand.get('name') else []
+    return out
+
+
 def deck_errors(deck):
     """Reasons the deck cannot be drawn: wrong shapes, unknown slide type, a flow step or system link naming something that is not there."""
     if not isinstance(deck, dict):
         return ['deck: deck.json must be an object with a "slides" list']
-    if 'title' in deck and not isinstance(deck['title'], str):
-        return ['deck: "title" must be text']
+    top = top_level_errors(deck)
+    if top:
+        return top
     slides = deck.get('slides')
     if not isinstance(slides, list) or not slides:
         return ['deck: "slides" must be a non-empty list']
@@ -109,6 +132,8 @@ def shown_texts(sl):
         yield 'link label', l.get('label'), 4
     for a in sl.get('actors') or []:
         yield 'actor name', a.get('name'), None
+    if kind == 'flow':
+        yield 'when', sl.get('when'), 20
     for st in sl.get('steps') or []:
         yield 'step label', st.get('label'), 6
         yield 'step text', st.get('text'), 18
@@ -128,9 +153,18 @@ def _plain(token):
     return token.strip('.,;:!?"\'“”()[]{}').lower()
 
 
-def code_like(text, symbols):
-    """Tokens of `text` that read as code to a stakeholder: identifiers, paths, file extensions, hashes, call syntax."""
+def term_pattern(terms):
+    """A regex for the listed terms as whole words (case-insensitive, longest first), or None when there are none."""
+    names = sorted({t for t in terms if t}, key=len, reverse=True)
+    return re.compile(r'(?<!\w)(?:%s)(?!\w)' % '|'.join(re.escape(n) for n in names), re.I) if names else None
+
+
+def code_like(text, symbols, terms=()):
+    """Tokens of `text` that read as code to a stakeholder: identifiers, paths, file extensions, hashes, call syntax.
+    A listed term (a product name such as CleanStation) is a word to a stakeholder, so it is never code."""
     found = []
+    listed = term_pattern(terms)
+    text = listed.sub(' ', text) if listed else text
     if re.search(r'::|->|→', text):
         found.append('::, -> or an arrow')
     if re.search(r'\w\(\)', text):
@@ -193,20 +227,41 @@ def _structure_lint(slides, scenario_ids, code_mode):
     return out
 
 
+def _terms_lint(deck, symbols):
+    """A term needs a short meaning and has to appear in the shown text, or it explains nothing."""
+    terms = [t for t in deck.get('terms') or [] if t.get('term')]
+    names = [t['term'] for t in terms]
+    shown = ' '.join(str(text or '') for sl in deck.get('slides', []) for _, text, _ in shown_texts(sl))
+    out = ['deck: %d terms (use at most %d)' % (len(terms), MAX_TERMS)] if len(terms) > MAX_TERMS else []
+    for t in terms:
+        means = t.get('means') or ''
+        words = len(means.split())
+        out += [] if words else ['deck term "%s": no "means"' % t['term']]
+        out += ['deck term "%s": means is %d words (max %d)' % (t['term'], words, TERM_MEANS_WORDS)] if words > TERM_MEANS_WORDS else []
+        out += ['deck term "%s": means "%s" reads as code, say it in business words' % (t['term'], tok) for tok in code_like(means, symbols, names)]
+        out += [] if term_pattern([t['term']]).search(shown) else ['deck term "%s": never used in the shown text' % t['term']]
+    return out
+
+
+def _flow_lint(n, sl):
+    return ['deck slide %d: flow has no "when" (who does what and why, the trigger, max 20 words)' % n] if sl.get('type') == 'flow' and not sl.get('when') else []
+
+
 def deck_lint(deck, scenario_ids, code_mode, symbols):
     """Warnings only (never errors): structure, counts, word limits, missing notes or stat sources, code-like words in shown text."""
     slides = deck.get('slides', [])
-    out = _structure_lint(slides, scenario_ids, code_mode)
+    names = [t.get('term') for t in deck.get('terms') or []]
+    out = _structure_lint(slides, scenario_ids, code_mode) + _terms_lint(deck, symbols)
     if len((deck.get('title') or '').split()) > 9:
         out.append('deck: title is over 9 words')
     for n, sl in enumerate(slides, 1):
-        out += _count_lint(n, sl) + _notes_lint(n, sl)
+        out += _count_lint(n, sl) + _notes_lint(n, sl) + _flow_lint(n, sl)
         out += ['deck slide %d: stat "%s" has no source (commit, ticket, test, config or doc)' % (n, st.get('label')) for st in sl.get('stats') or [] if not st.get('source')]
         for field, text, limit in shown_texts(sl):
             words = len(str(text or '').split())
             if limit and words > limit:
                 out.append('deck slide %d: %s is %d words (max %d)' % (n, field, words, limit))
-            out += ['deck slide %d: %s "%s" reads as code, say it in business words' % (n, field, tok) for tok in code_like(str(text or ''), symbols)]
+            out += ['deck slide %d: %s "%s" reads as code, say it in business words' % (n, field, tok) for tok in code_like(str(text or ''), symbols, names)]
     return out
 
 
@@ -214,3 +269,22 @@ def deck_summary(deck, lint_count):
     slides = deck.get('slides', [])
     return 'deck: %d slides (%d flows), %d reveal steps; %d lint' % (
         len(slides), sum(1 for sl in slides if sl.get('type') == 'flow'), sum(reveal_steps(sl) for sl in slides), lint_count)
+
+
+def embed_brand(deck, work):
+    """(the deck as the page carries it, errors). The brand's logo (the built-in name "labos", or a path relative to `work` or absolute)
+    becomes `src`, a data URI, so the page stays one file. A deck without a brand logo is returned as it is."""
+    brand = deck.get('brand')
+    if not brand or not brand.get('logo'):
+        return deck, []
+    logo = brand['logo']
+    built_in = os.path.join(BRAND_DIR, logo + '.svg')
+    path = built_in if os.path.isfile(built_in) else logo if os.path.isabs(logo) else os.path.join(work, logo)
+    mime = LOGO_TYPES.get(os.path.splitext(path)[1].lower())
+    if not os.path.isfile(path):
+        return deck, ['deck brand: logo "%s" is not a built-in brand or a file' % logo]
+    if not mime:
+        return deck, ['deck brand: logo "%s" is not an image (use %s)' % (logo, ', '.join(LOGO_TYPES))]
+    with open(path, 'rb') as f:
+        src = 'data:%s;base64,%s' % (mime, base64.b64encode(f.read()).decode('ascii'))
+    return {**deck, 'brand': {'name': brand['name'], 'src': src}}, []

@@ -80,8 +80,13 @@ Repo: {REPO}. The change: {RANGE}; commit messages: git log {diff_base}..{sha}; 
 Context: {WORK}/layout.json, {WORK}/inventory.json, {WORK}/scenarios.json (the flows to summarise),
 {WORK}/files.json. Read first and follow exactly: {SKILL}/references/deck.md (schema, limits, writing rules).
 Slides in this order: title, value, before_after, system, 1-3 flow (the major use cases only, each with the
-scenario id it summarises), risk, takeaways. Business words only: no file names, paths, function names, arrows
-or hashes. A number only when a commit, ticket, test, config or doc states it, and then with its "source".
+scenario id it summarises), risk, takeaways. Use the product's own names: name every component, actor and block
+the way the product team and stakeholders do (the node names in layout.json and inventory.json, the ticket, in a
+labOS codebase the domain-glossary skill), never a generic stand-in like "integration server" or "cleanup service";
+list the names a stakeholder may not know in "terms" ({term, means: max 15 words}, 0-8). Otherwise business words only:
+no file names, paths, function names, arrows or hashes. Each flow slide gets "when" (max 20 words: who does what and
+why, the trigger); every step names a real actor doing a concrete thing, and "result" states the outcome for the
+user or business. A number only when a commit, ticket, test, config or doc states it, and then with its "source".
 Ground the risk slide in what the code has (flags and their defaults, tests, config, the revert path), with a
 "ref" for each mitigation that cites code. Every slide and every reveal step gets a speaker note: what the
 presenter says, two or three plain sentences (the risk and takeaways slides: "step_notes", one per reveal). Check before finishing: limits, notes, refs resolve.

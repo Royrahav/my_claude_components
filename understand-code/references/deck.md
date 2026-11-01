@@ -7,9 +7,16 @@ is exactly what it was. The page still opens on the Map; `#brief` opens the deck
 
 ## Writing for stakeholders
 
+- **Product terms, never stand-ins.** Name every component, actor and block by the name the product team and the
+  stakeholders use: the map's node names (`layout.json`, `inventory.json`), the ticket and, in a labOS codebase, the
+  `domain-glossary` skill (LaaSServer, CleanStation, the caller, the app). Never a generic stand-in ("integration
+  server", "cleanup service", "server A"). List each product name a stakeholder might not know in `terms`.
 - **Business words only.** No file names, paths, extensions, function or class names, `()`, `::`, arrows, hashes,
-  snake_case or camelCase. Say "the print gateway", not the package. The build lints this; a finding means rewrite
-  the sentence, not hide the word. Product and company names (labOS, PostgreSQL) are fine.
+  snake_case or camelCase. The build lints this; a finding means rewrite the sentence, not hide the word. Product and
+  company names (labOS, PostgreSQL) and the listed `terms` are fine.
+- **Clear use cases.** A flow slide says who does what and why (`when`, the trigger) before the steps. Each step names
+  a real actor doing a concrete thing ("The lab app asks CleanStation to wash the tray"), never an abstract label
+  ("processing", "handling"). The `result` states the outcome for the user or the business.
 - **Why before how.** Order is value, purpose, then mechanism, then risk. A stakeholder who stops after slide 3 should
   already know why the work exists.
 - **No invented numbers.** A number appears only when a commit, ticket, test, config or doc states it, and then it
@@ -33,6 +40,8 @@ is exactly what it was. The page still opens on the Map; `#brief` opens the deck
 ```jsonc
 {
   "title": "Print to any printer by its address",             // max 9 words
+  "terms": [{ "term": "CleanStation", "means": "max 15 words" }],   // optional, 0-8: product names, marked in the shown text, meaning on hover or focus
+  "brand": { "name": "labOS", "logo": "labos" },              // optional: logo "labos" (built in) or a .svg/.png/.jpg/.webp path, relative to the work folder or absolute
   "slides": [                                                   // in this order; flow 1-3 times
     { "type": "title", "title": "...", "subtitle": "max 25 words",
       "stats": [{ "value": "3", "label": "max 6 words", "source": "commit, ticket, test, config or doc" }],   // 0-4; a numeric value counts up
@@ -47,9 +56,10 @@ is exactly what it was. The page still opens on the Map; `#brief` opens the deck
       "blocks": [{ "id": "gw", "name": "Print gateway", "status": "new|changed|existing|external", "text": "max 12 words", "note": "..." }],   // 3-7, one per reveal
       "links": [{ "from": "lis", "to": "gw", "label": "max 4 words" }] },                                   // ids must be blocks
     { "type": "flow", "title": "Use case: ...", "scenario": "id in scenarios.json it summarises", "notes": "...",
+      "when": "max 20 words: who does what and why (the trigger)",     // required, shown under the title
       "actors": [{ "id": "lis", "name": "Lab system", "icon": "user|app|server|db|printer|cloud|device|lock|queue|mail" }],   // 2-5
       "steps": [{ "from": "lis", "to": "gw", "label": "max 6 words", "text": "max 18 words", "fail": false, "note": "..." }],  // 2-7; ids must be actors
-      "result": "max 16 words" },                                   // shown as a final reveal
+      "result": "max 16 words: the outcome for the user or business" },   // shown as a final reveal
     { "type": "risk", "title": "Risk and release", "notes": "...",
       "level": "low|medium|high", "reason": "max 25 words",
       "areas": [{ "name": "max 5 words", "impact": 1 }],            // impact 1-3, 1-6 areas
@@ -63,13 +73,24 @@ is exactly what it was. The page still opens on the Map; `#brief` opens the deck
 
 A slide title is at most 9 words. An unknown icon draws a dot.
 
+**Terms.** A listed term is a product name: it is exempt from the code-like lint (CamelCase names such as CleanStation
+or LaaSServer) and, wherever it appears in shown text (not case-sensitive, whole word), it gets a dotted underline and
+its meaning as a hover or keyboard-focus tooltip, in present mode too.
+
+**Brand.** With a `brand`, the build embeds the logo in the page (the built-in `labos` is `assets/brands/labos.svg`):
+large on the title slide, small in the corner of every other slide, the brand name as its alt text; on the dark theme
+it sits on a light plate. Without a brand there is no logo and the page is unchanged.
+
 ## What the build does with it
 
 - **Errors (exit 3, same as other malformed input):** deck.json that is not an object, an empty `slides` list, a slide
   that is not an object, an entry of a list (cards, blocks, links, actors, steps, areas, mitigations, stats) that is not
-  an object, unknown slide type, a flow step whose `from` or `to` is not in its `actors`, a system link to an unknown block.
+  an object, unknown slide type, a flow step whose `from` or `to` is not in its `actors`, a system link to an unknown block,
+  `terms` or `brand` of the wrong shape, a brand without a `name`, a brand `logo` that is neither built in nor an existing
+  .svg/.png/.jpg/.webp file.
 - **Lint (warnings in `W/lint.txt`, first three printed):** word limits, missing notes, a stat without a `source`,
-  missing `step_notes` (risk, takeaways), counts outside the ranges, a missing or out-of-order slide, more than 3 flows, a flow `scenario` not in
+  missing `step_notes` (risk, takeaways), a flow without `when` or with one over 20 words, a term without `means`, with a
+  `means` over 15 words or never used in the shown text, counts outside the ranges, a missing or out-of-order slide, more than 3 flows, a flow `scenario` not in
   `scenarios.json`, `before_after` in code mode, code-like words in any shown text. Fix every finding.
 - **Refs:** mitigation `ref`s join the other refs; an unresolved one blocks publishing like any other.
 - **Summary line**, printed only when a deck exists: `deck: N slides (F flows), S reveal steps; L lint` (L must be 0).

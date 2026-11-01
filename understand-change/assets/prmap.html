@@ -8,7 +8,7 @@
   --accent: #2459d6; --accent-soft: #e3ebfc; --accent-ink: #ffffff;
   --new: #13895c; --new-soft: #dcf3e8; --chg: #b26b00; --chg-soft: #fbedd5; --ext: #6c7a90; --ext-soft: #eceff4;
   --bad: #c2362b; --bad-soft: #fbe1de; --pulse: rgba(36, 89, 214, 0.35);
-  --bar-h: 58px;
+  --bar-h: 58px; --plate: transparent; --plate-pad: 0;
   --font: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
@@ -17,9 +17,11 @@
     --accent: #6f9bff; --accent-soft: #1a2a4a; --accent-ink: #081225;
     --new: #43c98f; --new-soft: #12301f; --chg: #f0ad3a; --chg-soft: #33270f; --ext: #8f9cb0; --ext-soft: #1b2230;
     --bad: #f07a6e; --bad-soft: #3a1b18; --pulse: rgba(111, 155, 255, 0.4); color-scheme: dark;
+    --plate: #f7f9f8; --plate-pad: 0.35em 0.6em;
   }
 }
 :root[data-theme="dark"] {
+  --plate: #f7f9f8; --plate-pad: 0.35em 0.6em;
   --bg: #0c111a; --surface: #131a26; --surface2: #182131; --ink: #e6ecf5; --muted: #93a2b8; --line: #263247;
   --accent: #6f9bff; --accent-soft: #1a2a4a; --accent-ink: #081225;
   --new: #43c98f; --new-soft: #12301f; --chg: #f0ad3a; --chg-soft: #33270f; --ext: #8f9cb0; --ext-soft: #1b2230;
@@ -220,6 +222,18 @@ code, .mono, .code, .io, .curl, .ref { font-variant-ligatures: none; }
 .dk-h { margin: 0; font-size: 1.7em; line-height: 1.2; font-weight: 700; text-wrap: balance; }
 .dk-big { margin: 0; font-size: 2.8em; line-height: 1.1; font-weight: 700; text-wrap: balance; }
 .dk-sub { font-size: 1.3em; color: var(--muted); max-width: 40em; }
+.dk-when { margin: -0.3em 0 0; font-size: 1.1em; color: var(--muted); max-width: 44em; }
+/* A listed term: dotted underline; its meaning shows in the one .dk-tip of the deck on hover or focus. */
+.dk-term { text-decoration: underline dotted; text-decoration-thickness: 1px; text-underline-offset: 0.22em; cursor: help; border-radius: 3px; }
+.dk-term:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dk-tip { position: fixed; z-index: 1100; max-width: min(22em, calc(100vw - 16px)); padding: 0.45em 0.7em; border-radius: 8px; background: var(--ink); color: var(--bg); font-size: 13.5px; line-height: 1.35; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25); pointer-events: none; }
+.dk-tip[hidden] { display: none; }
+/* The brand logo: large on the title slide, small in the corner of the others; on the dark theme it sits on a light plate. */
+.dk-logo, .dk-logo-big { display: block; box-sizing: content-box; object-fit: contain; width: auto; background: var(--plate); padding: var(--plate-pad); border-radius: 0.6em; }
+.dk-logo-big { height: 3.4em; max-width: 18em; align-self: flex-start; }
+.dk-logo { position: absolute; top: 0; right: 0; height: 2em; max-width: 8em; }
+.dk-branded .dk-h { padding-right: 9.5em; }
+.dk-fluid .dk-logo { top: 14px; right: 14px; } .dk-fluid .dk-branded .dk-h { padding-right: 7em; }
 .dk-stats { display: flex; gap: 0.8em; flex-wrap: wrap; margin-top: 0.4em; }
 .dk-stat { display: flex; flex-direction: column; gap: 0.1em; padding: 0.7em 1.1em; border-radius: 12px; background: var(--accent-soft); min-width: 7em; }
 .dk-stat b { font-size: 2.2em; line-height: 1.1; color: var(--accent); font-variant-numeric: tabular-nums; }
@@ -1021,6 +1035,19 @@ code, .mono, .code, .io, .curl, .ref { font-variant-ligatures: none; }
     return s('svg', Object.assign({ class: 'dk-ic', viewBox: '0 0 24 24', width: size, height: size, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' }, at || {}),
       paths ? paths.map(d => s('path', { d })) : s('circle', { cx: 12, cy: 12, r: 2.5 }));
   }
+  // Terms (deck.terms): wherever one appears in shown text it is marked, and its meaning shows in the deck's tooltip. svg: true marks it inside SVG text.
+  const DK_TERMS = ((D.deck || {}).terms || []).filter(t => t.term && t.means);
+  // Must match term_pattern() in scripts/deck.py. Built in a try: a browser without lookbehind then just shows the terms unmarked.
+  const DK_TERM_RE = (() => { try { return DK_TERMS.length ? new RegExp('(?<!\\w)(' + DK_TERMS.map(t => t.term).sort((a, b) => b.length - a.length).map(x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')(?!\\w)', 'i') : null; } catch (e) { return null; } })();
+  const dkMeans = word => (DK_TERMS.find(t => t.term.toLowerCase() === word.toLowerCase()) || {}).means;
+  function dkText(text, svg) {
+    const str = String(text == null ? '' : text);
+    if (!DK_TERM_RE) return str;
+    const mark = (build, tag, word) => build(tag, { class: 'dk-term', tabindex: 0, 'data-means': dkMeans(word) }, word);
+    return str.split(DK_TERM_RE).map((part, i) => i % 2 ? (svg ? mark(s, 'tspan', part) : mark(h, 'span', part)) : part);
+  }
+  const DK_BRAND = (((D.deck || {}).brand || {}).src) ? D.deck.brand : null;
+  const dkLogo = cls => DK_BRAND ? h('img', { class: cls, src: DK_BRAND.src, alt: DK_BRAND.name }) : null;
   // Reveal steps per slide type: keep in step with reveal_steps() in scripts/deck.py.
   const dkSteps = sl => ({ value: (sl.cards || []).length, before_after: 1, system: (sl.blocks || []).length, flow: (sl.steps || []).length + 1, risk: 5, takeaways: (sl.points || []).length })[sl.type] || 0;
   function dkNote(sl, r) {
@@ -1048,20 +1075,20 @@ code, .mono, .code, .io, .curl, .ref { font-variant-ligatures: none; }
   }
   function dkTitle(sl, c) {
     const stats = (sl.stats || []).slice(0, 4);
-    return [h('h2', { class: 'dk-big' + (c.enter ? ' dk-rise' : '') }, sl.title),
-      sl.subtitle ? h('p', { class: 'dk-sub' + (c.enter ? ' dk-rise' : ''), style: c.enter ? 'animation-delay:0.15s' : null }, sl.subtitle) : null,
+    return [dkLogo('dk-logo-big'), h('h2', { class: 'dk-big' + (c.enter ? ' dk-rise' : '') }, dkText(sl.title)),
+      sl.subtitle ? h('p', { class: 'dk-sub' + (c.enter ? ' dk-rise' : ''), style: c.enter ? 'animation-delay:0.15s' : null }, dkText(sl.subtitle)) : null,
       stats.length ? h('div', { class: 'dk-stats' }, stats.map((st, k) => {
         const v = h('b', {}, st.value);
         c.counts.push([v, st.value]);
-        return h('div', { class: 'dk-stat' + (c.enter ? ' dk-pop' : ''), style: c.enter ? 'animation-delay:' + (0.3 + k * 0.15) + 's' : null, title: st.source ? 'Source: ' + st.source : null }, v, h('span', {}, st.label));
+        return h('div', { class: 'dk-stat' + (c.enter ? ' dk-pop' : ''), style: c.enter ? 'animation-delay:' + (0.3 + k * 0.15) + 's' : null, title: st.source ? 'Source: ' + st.source : null }, v, h('span', {}, dkText(st.label)));
       })) : null];
   }
   function dkValue(sl, c) {
     return h('div', { class: 'dk-cards' }, (sl.cards || []).map((cd, k) => h('div', { class: dkCls('dk-card', c, k) },
-      h('div', { class: 'dk-ico' }, dkIcon(cd.icon, 28)), h('b', {}, cd.head), h('p', {}, cd.text))));
+      h('div', { class: 'dk-ico' }, dkIcon(cd.icon, 28)), h('b', {}, dkText(cd.head)), h('p', {}, dkText(cd.text)))));
   }
   function dkBeforeAfter(sl, c) {
-    const panel = (cls, d) => h('div', { class: cls }, h('h3', {}, (d || {}).head), h('ul', {}, ((d || {}).points || []).map(p => h('li', {}, p))));
+    const panel = (cls, d) => h('div', { class: cls }, h('h3', {}, dkText((d || {}).head)), h('ul', {}, ((d || {}).points || []).map(p => h('li', {}, dkText(p)))));
     const on = c.r >= 1;
     return h('div', { class: 'dk-ba' },
       panel('dk-panel dk-before' + (on ? ' dk-dim' : ''), sl.before),
@@ -1078,7 +1105,7 @@ code, .mono, .code, .io, .curl, .ref { font-variant-ligatures: none; }
   function dkPill(text, x, y, on) {
     const lines = dkWrap2(text, 12), w = Math.max(...lines.map(l => l.length)) * 6.3 + 16, hh = lines.length * 13 + 8;
     const g = s('g', { class: on ? '' : 'dk-off' }, s('rect', { class: 'dk-lpill', x: x - w / 2, y: y - hh / 2, width: w, height: hh, rx: 8 }));
-    lines.forEach((l, k) => g.append(s('text', { class: 'dk-ltext', x, y: y - hh / 2 + 14 + k * 13 }, l)));
+    lines.forEach((l, k) => g.append(s('text', { class: 'dk-ltext', x, y: y - hh / 2 + 14 + k * 13 }, dkText(l, true))));
     return g;
   }
   function dkSystem(sl, c) {
@@ -1102,7 +1129,7 @@ code, .mono, .code, .io, .curl, .ref { font-variant-ligatures: none; }
       const slot = s('g', { transform: `translate(${box[k].cx - bw / 2},${box[k].cy - bh / 2})` });  // the pop animates the inner group's transform, so the position lives outside it
       const g = s('g', { class: 'dk-' + st + (k < c.r ? ' dk-live' : ' dk-off') + (fresh ? ' dk-pop' : ''), style: 'transform-box:fill-box;transform-origin:center' });
       const fo = s('foreignObject', { width: bw, height: bh });
-      fo.append(h('div', { class: 'dk-blk' }, st === 'existing' ? null : h('small', {}, st === 'external' ? 'outside' : st), h('b', {}, b.name), h('span', {}, b.text)));
+      fo.append(h('div', { class: 'dk-blk' }, st === 'existing' ? null : h('small', {}, st === 'external' ? 'outside' : st), h('b', {}, dkText(b.name)), h('span', {}, dkText(b.text))));
       g.append(s('rect', { class: 'dk-blk-r', width: bw, height: bh, rx: 12 }), fo);
       slot.append(g); svg.append(slot);
     });
@@ -1139,7 +1166,7 @@ code, .mono, .code, .io, .curl, .ref { font-variant-ligatures: none; }
     A.forEach((a, i) => {
       const g = s('g', { style: 'color:' + (involved.has(a.id) ? 'var(--accent)' : 'var(--muted)') });
       g.append(s('circle', { class: 'dk-actor' + (involved.has(a.id) ? ' on' : ''), cx: X(i), cy, r: R }), dkIcon(a.icon, 36, { x: X(i) - 18, y: cy - 18 }));
-      dkWrap2(a.name).forEach((line, li) => g.append(s('text', { class: 'dk-actor-n', x: X(i), y: cy + R + 20 + li * 15 }, line)));
+      dkWrap2(a.name).forEach((line, li) => g.append(s('text', { class: 'dk-actor-n', x: X(i), y: cy + R + 20 + li * 15 }, dkText(line, true))));
       svg.append(g);
     });
     const motions = [];
@@ -1163,9 +1190,9 @@ code, .mono, .code, .io, .curl, .ref { font-variant-ligatures: none; }
     });
     const step = cur >= 0 ? st[cur] : null, done = c.r > st.length;
     c.motions = motions;
-    return [h('div', { class: 'dk-svgbox' }, svg),
-      step ? h('div', { class: 'dk-cap' + (step.fail ? ' bad' : ''), 'aria-live': 'polite' }, h('b', {}, (cur + 1) + '. ' + (step.label || '')), step.text) : h('div', { class: 'dk-cap muted' }, 'Next shows the first step of the use case.'),
-      sl.result ? h('div', { class: 'dk-result' + (st.length && st[st.length - 1].fail ? ' bad' : '') + (done ? '' : ' dk-off') + (done && dkFresh(c, st.length) ? ' dk-pop' : '') }, sl.result) : null];
+    return [sl.when ? h('p', { class: 'dk-when' }, dkText(sl.when)) : null, h('div', { class: 'dk-svgbox' }, svg),
+      step ? h('div', { class: 'dk-cap' + (step.fail ? ' bad' : ''), 'aria-live': 'polite' }, h('b', {}, dkText((cur + 1) + '. ' + (step.label || ''))), dkText(step.text)) : h('div', { class: 'dk-cap muted' }, 'Next shows the first step of the use case.'),
+      sl.result ? h('div', { class: 'dk-result' + (st.length && st[st.length - 1].fail ? ' bad' : '') + (done ? '' : ' dk-off') + (done && dkFresh(c, st.length) ? ' dk-pop' : '') }, dkText(sl.result)) : null];
   }
   function dkRisk(sl, c) {
     const lvl = ['low', 'medium', 'high'].includes(sl.level) ? sl.level : 'medium', to = { low: -60, medium: 0, high: 60 }[lvl];
@@ -1177,21 +1204,22 @@ code, .mono, .code, .io, .curl, .ref { font-variant-ligatures: none; }
     const card = (k, title, ...kids) => h('div', { class: dkCls('dk-rc', c, k) }, h('h3', {}, title), kids);
     const fresh = k => dkFresh(c, k);
     return h('div', { class: 'dk-risk' },
-      card(0, 'Risk level', gauge, h('div', { class: 'dk-level ' + lvl }, lvl.toUpperCase()), h('p', {}, sl.reason)),
+      card(0, 'Risk level', gauge, h('div', { class: 'dk-level ' + lvl }, lvl.toUpperCase()), h('p', {}, dkText(sl.reason))),
       card(1, 'Affected areas', (sl.areas || []).map((a, i) => { const imp = Math.min(3, Math.max(1, Number(a.impact) || 1));
-        return h('div', { class: 'dk-area' }, h('span', {}, a.name), h('span', { class: 'muted' }, ['low', 'medium', 'high'][imp - 1]), h('div', { class: 'dk-track', style: 'grid-column:1/3' }, h('i', { class: 'dk-fill i' + imp + (fresh(1) ? ' dk-growing' : ''), style: 'width:' + (imp * 100 / 3) + '%' + (fresh(1) ? ';animation-delay:' + (0.15 * i) + 's' : '') }))); })),
+        return h('div', { class: 'dk-area' }, h('span', {}, dkText(a.name)), h('span', { class: 'muted' }, ['low', 'medium', 'high'][imp - 1]), h('div', { class: 'dk-track', style: 'grid-column:1/3' }, h('i', { class: 'dk-fill i' + imp + (fresh(1) ? ' dk-growing' : ''), style: 'width:' + (imp * 100 / 3) + '%' + (fresh(1) ? ';animation-delay:' + (0.15 * i) + 's' : '') }))); })),
       card(2, 'Mitigations', h('ul', { class: 'dk-list' }, (sl.mitigations || []).map((m, i) => h('li', { title: m.ref || null },
-        s('svg', { viewBox: '0 0 24 24', width: 20, height: 20, 'aria-hidden': 'true' }, s('path', { class: 'dk-tick' + (fresh(2) ? ' dk-drawn' : ''), d: 'M4 12l5 5L20 6', pathLength: 1, style: fresh(2) ? 'animation-delay:' + (0.25 * i) + 's' : null })), h('span', {}, m.text))))),
-      card(3, 'Rollout and rollback', h('div', { class: 'dk-tl' }, h('div', { class: 'dk-node' }, h('b', {}, 'Rollout'), sl.rollout), h('div', { class: 'dk-node back' }, h('b', {}, 'Rollback'), sl.rollback))),
-      card(4, 'Watch after release', h('ul', { class: 'dk-list' }, (sl.watch || []).map(w => h('li', {}, h('i', { class: 'dk-eye' }), h('span', {}, w))))));
+        s('svg', { viewBox: '0 0 24 24', width: 20, height: 20, 'aria-hidden': 'true' }, s('path', { class: 'dk-tick' + (fresh(2) ? ' dk-drawn' : ''), d: 'M4 12l5 5L20 6', pathLength: 1, style: fresh(2) ? 'animation-delay:' + (0.25 * i) + 's' : null })), h('span', {}, dkText(m.text)))))),
+      card(3, 'Rollout and rollback', h('div', { class: 'dk-tl' }, h('div', { class: 'dk-node' }, h('b', {}, 'Rollout'), dkText(sl.rollout)), h('div', { class: 'dk-node back' }, h('b', {}, 'Rollback'), dkText(sl.rollback)))),
+      card(4, 'Watch after release', h('ul', { class: 'dk-list' }, (sl.watch || []).map(w => h('li', {}, h('i', { class: 'dk-eye' }), h('span', {}, dkText(w)))))));
   }
   function dkTakeaways(sl, c) {
     return h('ul', { class: 'dk-points' }, (sl.points || []).map((p, k) => h('li', { class: dkCls('', c, k).trim() },
-      s('svg', { viewBox: '0 0 24 24', width: 26, height: 26, 'aria-hidden': 'true' }, s('path', { class: 'dk-tick' + (dkFresh(c, k) ? ' dk-drawn' : ''), d: 'M4 12l5 5L20 6', pathLength: 1, style: dkFresh(c, k) ? 'animation-delay:0.2s' : null })), h('span', {}, p))));
+      s('svg', { viewBox: '0 0 24 24', width: 26, height: 26, 'aria-hidden': 'true' }, s('path', { class: 'dk-tick' + (dkFresh(c, k) ? ' dk-drawn' : ''), d: 'M4 12l5 5L20 6', pathLength: 1, style: dkFresh(c, k) ? 'animation-delay:0.2s' : null })), h('span', {}, dkText(p)))));
   }
   const DK_VIEW = { title: dkTitle, value: dkValue, before_after: dkBeforeAfter, system: dkSystem, flow: dkFlow, risk: dkRisk, takeaways: dkTakeaways };
   function dkSlide(sl, c) {
-    return h('section', { class: 'dk-slide dk-s-' + sl.type }, sl.type === 'title' ? null : h('h2', { class: 'dk-h' + (c.enter ? ' dk-rise' : '') }, sl.title), (DK_VIEW[sl.type] || (() => null))(sl, c));
+    const plain = sl.type === 'title';
+    return h('section', { class: 'dk-slide dk-s-' + sl.type + (DK_BRAND && !plain ? ' dk-branded' : '') }, plain ? null : [dkLogo('dk-logo'), h('h2', { class: 'dk-h' + (c.enter ? ' dk-rise' : '') }, dkText(sl.title))], (DK_VIEW[sl.type] || (() => null))(sl, c));
   }
   function deckTeardown() {
     cancelAnimationFrame(dk.raf); dk.raf = 0;
@@ -1206,9 +1234,19 @@ code, .mono, .code, .io, .curl, .ref { font-variant-ligatures: none; }
   function viewBrief() {
     deckTeardown();
     const fill = h('i'), counter = h('span', { class: 'counter' }), stage = h('div', { class: 'dk-stage' }), notesEl = h('div', { class: 'dk-notes', 'aria-live': 'polite' });
+    // One tooltip for every marked term; it lives in the wrap (not the clipped, scaled stage) so it shows in present mode too.
+    const tip = h('div', { class: 'dk-tip', id: 'dk-tip', role: 'tooltip', hidden: '' });
+    const hideTip = () => { tip.hidden = true; };
+    function showTip(el) {
+      tip.textContent = el.getAttribute('data-means'); tip.hidden = false; el.setAttribute('aria-describedby', 'dk-tip');
+      const r = el.getBoundingClientRect(), below = r.bottom + 6 + tip.offsetHeight <= innerHeight;
+      tip.style.left = Math.max(8, Math.min(r.left, innerWidth - tip.offsetWidth - 8)) + 'px';
+      tip.style.top = (below ? r.bottom + 6 : Math.max(8, r.top - tip.offsetHeight - 6)) + 'px';
+    }
+    const onTerm = (act, e) => { const t = e.target.closest && e.target.closest('.dk-term'); if (t) act(t); };
     const cur = () => DECK[dk.i], last = () => dk.i === DECK.length - 1 && dk.r >= dkSteps(cur());
     function draw(anim) {
-      cancelAnimationFrame(dk.raf); dk.raf = 0;
+      cancelAnimationFrame(dk.raf); dk.raf = 0; hideTip();
       const sl = cur(), c = { r: dk.r, anim, enter: anim && dk.r === 0, counts: [], motions: [] };
       put(stage, dkSlide(sl, c));
       requestAnimationFrame(() => c.motions.forEach(m => { try { m.beginElement(); } catch (e) { } }));
@@ -1263,7 +1301,8 @@ code, .mono, .code, .io, .curl, .ref { font-variant-ligatures: none; }
     const nextB = h('button', { class: 'btn primary', onclick: next, 'data-dk-step': '', 'aria-label': 'Next step' }, 'Next ▸');
     const notesB = h('button', { class: 'btn', 'aria-pressed': dk.notes ? 'true' : 'false', title: 'Speaker notes (N)', onclick: () => dk.api.toggleNotes() }, 'Notes');
     const presB = h('button', { class: 'btn', title: 'Present full screen (F), Esc exits', onclick: () => present(!dk.present) }, 'Present');
-    const wrap = h('div', { class: 'dk-wrap' }, h('div', { class: 'controls dk-bar' }, backB, nextB, counter, notesB, presB), h('div', { class: 'dk-prog' }, fill), stage, notesEl);
+    const wrap = h('div', { class: 'dk-wrap' }, h('div', { class: 'controls dk-bar' }, backB, nextB, counter, notesB, presB), h('div', { class: 'dk-prog' }, fill), stage, notesEl, tip);
+    [['mouseover', showTip], ['focusin', showTip], ['mouseout', hideTip], ['focusout', hideTip]].forEach(([type, act]) => wrap.addEventListener(type, e => onTerm(act, e)));
     dk.api = { next, back, jump, setNotes, present, fit, toggleNotes: () => setNotes(!notesOn()) };
     dk.i = Math.min(dk.i, DECK.length - 1);
     if (typeof ResizeObserver === 'function') { dk.ro = new ResizeObserver(fit); dk.ro.observe(stage); }

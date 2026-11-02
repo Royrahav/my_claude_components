@@ -64,15 +64,24 @@ what/why/picture/maintain, and beats anchored to the code the reader will see: r
   python {SKILL}/scripts/show_snippet.py --dir {WORK} --repo {REPO} "<ref>" [more refs]
 to print each piece's excerpt exactly as shown (the whole unit, with file line numbers), and copy each beat's
 "code" from those lines. Cover every shown line with beats: the first beat is the core intention (why the piece
-exists, what it guarantees), later beats explain blocks (use "to" or let a beat run to the next one). A unit over
-about 60 lines is split into parts with "span" (titled "Name (2 of 5): ...") that together cover it. The build
-prints uncovered lines in {WORK}/lint.txt and you must leave none.
+exists, what it guarantees); use "to" or let a beat run to the next one. A unit over about 60 lines is split into
+parts with "span" (titled "Name (2 of 5): ...") that together cover it. The build prints uncovered lines in
+{WORK}/lint.txt and you must leave none.
+Set each piece's "depth" per tour.md "Depth" and story.md "Choosing depth": follow the complexity line that show_snippet.py prints; "deep" for
+complex units and the 1-2 pieces each topic hinges on (a beat per decision, each saying why), "normal" for simple,
+flat code. In a deep item, no beat covers more than 3 code lines or more than 1 decision (if, loop, case, catch, `&&`, ternary); braces, logging and plain assignments may share a beat only within that limit. The build lints beats over
+the limit ("depth: N items explained too coarsely" must reach 0).
+{DEPTH_LINE}
 {INTRO_LINE}
 Never claim what the code does not do; mark inferred reasons with "probably". Before finishing, check: every
 ref resolves, every beat anchor occurs in its excerpt, word limits, no IDs/paths/hashes in say lines.
 Write {WORK}/story_{PART}.json as {"problems": [...]} (plus "intro"/"say_intro" if asked). Reply with pieces per
 topic and anything unsure, max 8 lines.
 ```
+
+`{DEPTH_LINE}`: only when the user asked for line-by-line, "The user asked for line-by-line explanation of: <the refs,
+or 'every non-trivial piece'>: set depth line on those pieces (one beat per meaningful line, each saying why)."; otherwise
+leave it empty.
 
 `{INTRO_LINE}`: for exactly one writer, "Also write the top-level intro and say_intro for the WHOLE scope
 (all topics: {ALL_PROBLEMS})"; for the others leave it empty.

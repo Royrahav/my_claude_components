@@ -28,7 +28,7 @@ sys.path.insert(0, HERE)
 from refs import Resolver, split_ref  # noqa: E402
 from narrate import narration_items  # noqa: E402
 from snippets import file_units, snippet  # noqa: E402
-from explain import changed_gaps, item_lint, jumps, resolve_beats, span_gaps  # noqa: E402
+from explain import changed_gaps, depth_lint, item_lint, jumps, resolve_beats, scenarios_running, span_gaps  # noqa: E402
 from deck import deck_errors, deck_lint, deck_refs, deck_summary, embed_brand  # noqa: E402
 
 TEMPLATE = os.path.join(HERE, '..', 'assets', 'prmap.html')
@@ -299,7 +299,7 @@ def main():
     refs += deck_refs(deck) if deck else []
     story = load_story(a.dir, layout)
     file_module = {f['path']: f.get('module') for f in merged}
-    snip_cache, commit_cache, no_snippet, by_ref, shown_spans = {}, {}, [], {}, {}
+    snip_cache, commit_cache, no_snippet, by_ref, shown_spans, coarse = {}, {}, [], {}, {}, 0
     for p in story.get('problems', []):
         for it in p.get('items', []):
             refs.append(('story %s' % it.get('id'), it['ref']))
@@ -319,9 +319,10 @@ def main():
                 warns.append('story %s beat %d: code "%s" is not in the excerpt shown' % (it.get('id'), n, anchor[:40]))
             lint += item_lint(it.get('id'), it)
             it['commits'] = commits_touching(os.path.abspath(a.repo), meta, path, commit_cache)
-            it['runs_in'] = [{'scenario': sc['id'], 'title': sc['title'], 'step': i}
-                             for sc in scen.get('scenarios', []) for i, st in enumerate(sc['steps'])
-                             if st.get('ref') and split_ref(st['ref']) == (path, symbol)]
+            it['runs_in'] = scenarios_running(scen.get('scenarios', []), path, symbol)
+            found = depth_lint(it.get('id'), it)
+            coarse += bool(found)
+            lint += found
     for parts in by_ref.values():
         lint += span_gaps(parts) if code_mode else changed_gaps(parts)
     if no_snippet:
@@ -401,6 +402,7 @@ def main():
         lint += unit_lint + deck_found
         print(write_lint(a.dir, lint)[1])
         if story:
+            print('depth: %d items explained too coarsely' % coarse)
             print('units: %d definitions no item shows' % len(unit_lint))
             for l in unit_lint[:3]:
                 print('  lint: ' + l)

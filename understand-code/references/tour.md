@@ -16,6 +16,7 @@ read with these meanings, because the engine is the same:
 | `items[]` | pieces: the code units that carry the design |
 | `why` | why it is built this way: the constraint, failure or trade-off it answers |
 | `intro` | what this code is for, who uses it and how it is shaped, 2-4 sentences |
+| `depth` | how finely the beats explain the piece: `normal`, `deep` or `line` (see "Depth" below) |
 
 ## Choosing topics and pieces
 
@@ -37,6 +38,15 @@ read with these meanings, because the engine is the same:
 - Cover the whole scope: every module and every file that matters belongs to some piece; the reader should
   never meet code in scope that no piece explained.
 
+## Depth: explain the complicated pieces with patience
+
+Simple, flat pieces (an accessor, wiring, a few straight steps, a constant, a table) keep block beats: `"depth": "normal"`.
+Set `"depth": "deep"` on every complex function (many branches, loops, locks, error paths) and on the one or two most
+important pieces of each topic, the ones the topic hinges on, even if `show_snippet.py`'s `complexity:` line says low.
+In a deep item, no beat covers more than 3 code lines or more than 1 decision (if, loop, case, catch, `&&`, ternary); braces, logging and plain assignments may share a beat only within that limit. `"depth": "line"` (one beat per meaningful line) is only for when the user asked; the orchestrator passes it as
+`{DEPTH_LINE}`. A long unit split with `span` takes its depth per part. Full rules and examples: `story.md` "Choosing
+depth", `narration.md` "Beats".
+
 ## Writing the explanations
 
 - `why` is the heart: name the concrete constraint this design answers ("the printer can be slow to answer, so
@@ -46,4 +56,4 @@ read with these meanings, because the engine is the same:
 - `maintain` is practical: the invariant, the limit, the trap, the test that guards it.
 - The spoken `say` and the beats follow `narration.md` beside this file: explain, don't read; no
   IDs, paths or function names spoken; connect to the previous piece; say why. The first beat of a piece is its core
-  intention; the beats then walk every block of it, top to bottom.
+  intention; the beats then follow its depth (above), top to bottom.

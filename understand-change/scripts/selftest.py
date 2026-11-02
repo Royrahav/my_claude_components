@@ -13,6 +13,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from explain import changed_gaps, item_lint, jumps, resolve_beats, span_gaps, uncovered  # noqa: E402
 from deck_selftest import deck_checks, page_data  # noqa: E402
+from depth_selftest import depth_checks  # noqa: E402
 from refs import method_in  # noqa: E402
 from snippets import GAP, _focus, _numbers, find_block, snippet  # noqa: E402
 
@@ -162,7 +163,10 @@ def main():
         'items': [{'id': 'empty-check', 'ref': 'app/greet.py → greet', 'focus': 'if not name', 'title': 'Check the name first',
                    'what': 'Raises on empty names.', 'why': 'Odd greetings reached users.', 'picture': 'Runs first in greet.',
                    'maintain': 'Keep the error message.',
-                   'beats': [{'say': 'Greet is the entry.', 'code': 'def greet'}, {'say': 'Empty names are refused here.', 'code': 'if not name:'}, {'say': 'With a clear message.', 'code': 'name is required'}]}]}]})
+                   'beats': [{'say': 'Greet is the entry.', 'code': 'def greet'}, {'say': 'Empty names are refused here.', 'code': 'if not name:'}, {'say': 'With a clear message.', 'code': 'name is required'}]},
+                  {'id': 'coarse-greet', 'ref': 'app/greet.py → greet', 'focus': 'if not name', 'depth': 'deep', 'title': 'Check the name in one beat',
+                   'what': 'Raises on empty names.', 'why': 'Odd greetings reached users.', 'picture': 'Runs first in greet.', 'maintain': 'Keep the error message.',
+                   'beats': [{'say': 'All of greet at once.', 'code': 'def greet'}]}]}]})
 
     out = os.path.join(work, 'out.html')
     build = run([sys.executable, os.path.join(HERE, 'build_prmap.py'), '--dir', work, out, '--repo', repo, '--standalone'], repo)
@@ -175,6 +179,7 @@ def main():
         ('not in the excerpt shown' not in report, 'beat anchors are on screen'),
         (os.path.exists(os.path.join(work, 'story.json')), 'story parts are merged'),
         ('beats: 1 items leave code unexplained' in report, 'the build summarizes items that leave code unexplained'),
+        ('depth: 1 items explained too coarsely' in report, 'the build counts items explained too coarsely'),
         ('units: 2 definitions no item shows' in report, 'the build counts changed definitions no item shows'),
     ]
     lint_path = os.path.join(work, 'lint.txt')
@@ -183,8 +188,9 @@ def main():
         ('story bye-bare: no beats' in lint, 'lint.txt lists the item without beats'),
         ('story empty-check' not in lint and 'story bye-fn' not in lint and 'long-mid' not in lint, 'lint.txt is silent about fully explained items'),
         ('scenario empty step 2: jump caller -> app' in lint and 'scenario empty: no purpose' in lint, 'lint.txt lists the jump and the missing purpose'),
+        ('story coarse-greet: depth deep but' in lint and 'story empty-check' not in lint, 'lint.txt lists the coarse deep item and only it'),
         ('scenario ok' not in lint, 'a scenario with purpose, intro and a call chain is clean'),
-    ] + logic_checks() + focus_checks()
+    ] + logic_checks() + focus_checks() + depth_checks()
     whole = snippet(repo, 'HEAD~1', 'HEAD', 'app/greet.py', 'long_fn', None, {}, None, focus=False)
     checks.append((whole and len(whole['lines']) == 18 and not whole['focused'], '"whole" (focus off) shows the entire modified unit'))
     wide = lambda span: snippet(repo, 'HEAD~1', 'HEAD', 'app/greet.py', 'wide_fn', span, {}, None, focus=True)

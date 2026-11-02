@@ -57,16 +57,25 @@ to print each item's excerpt exactly as shown (with file line numbers), and copy
 lines. Focus on the change: a modified function is shown as its changed lines plus a little context ("⋯" folds
 the unchanged rest), and the beats explain those changes, the first in one clause saying what the function is for
 and what this change does to it. A new function is shown and explained whole. Use "whole": true (preview with
---whole) only when the change cannot be understood without the whole function. Beats cover every shown line;
-later beats explain blocks (use "to" or let a beat run to the next one). An excerpt over about 60 lines is split
-into parts with "span" (titled "Name (2 of 5): ...") that together show every changed line. The build prints
-uncovered lines in {WORK}/lint.txt and you must leave none.
+--whole) only when the change cannot be understood without the whole function. Beats cover every shown line
+(use "to" or let a beat run to the next one). An excerpt over about 60 lines is split into parts with "span"
+(titled "Name (2 of 5): ...") that together show every changed line. The build prints uncovered lines in
+{WORK}/lint.txt and you must leave none.
+Set each item's "depth" per story.md "Choosing depth": follow the complexity line that show_snippet.py prints; "deep" for
+complex units and the 1-2 items each problem hinges on (a beat per decision, each saying why), "normal" for simple,
+flat code. Depth applies to the shown excerpt only and never turns on "whole". In a deep item, no beat covers more than 3 code lines or more than 1 decision (if, loop, case, catch, `&&`, ternary); braces, logging and plain assignments may share a beat only within that limit. The build lints beats over
+the limit ("depth: N items explained too coarsely" must reach 0).
+{DEPTH_LINE}
 {INTRO_LINE}
 Never claim what the code does not do; mark inferred reasons with "probably". Before finishing, check: every
 ref resolves, every beat anchor occurs in its excerpt, word limits, no IDs/paths/hashes in say lines.
 Write {WORK}/story_{PART}.json as {"problems": [...]} (plus "intro"/"say_intro" if asked). Reply with items per
 problem and anything unsure, max 8 lines.
 ```
+
+`{DEPTH_LINE}`: only when the user asked for line-by-line, "The user asked for line-by-line explanation of: <the refs,
+or 'every non-trivial piece'>: set depth line on those items (one beat per meaningful line, each saying why)."; otherwise
+leave it empty.
 
 `{INTRO_LINE}`: for exactly one writer, "Also write the top-level intro and say_intro for the WHOLE change
 (all problems: {ALL_PROBLEMS})"; for the others leave it empty.

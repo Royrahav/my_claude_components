@@ -32,6 +32,7 @@ Written to `WORK/story.json`, or by several writers as `WORK/story_<part>.json` 
           "why": "Which part of the problem it solves and why it is built this way, 1-2 sentences",
           "picture": "Its role in the bigger flow: who calls it, what depends on it, 1 sentence",
           "maintain": "What the owner must keep true or watch when changing it, 1 sentence",
+          "depth": "normal | deep | line, how finely the beats explain the unit; absent = the build judges, see Choosing depth",
           "say": "spoken explanation, 2-4 sentences, 30-70 words",
           "beats": [ { "say": "...", "code": "text on the first line it explains", "to": "optional: text on its last line" } ]   // see narration.md
         }
@@ -72,6 +73,28 @@ Written to `WORK/story.json`, or by several writers as `WORK/story_<part>.json` 
   unique string that occurs in it (a config key, a heading, a function name in a script).
 - Cover the whole change: every module and every file that matters belongs to some item; the reader should
   never meet code in the repo that no item explained.
+
+## Choosing depth
+
+`depth` sets how finely `beats` explain the unit (beat rules: `narration.md`, "Beats"). It changes only the beats, never
+which lines are shown.
+
+- `normal`: block beats. For simple or flat code (accessors, wiring, a few straight steps, a constant, a table or a
+  list of assignments, a config switch).
+- `deep`: after the core-intention beat, every decision, branch, loop, lock, early return, error path or non-obvious
+  line gets its own beat that says why it is there (what breaks without it, why this order, value or condition).
+  No beat covers more than 3 code lines or more than 1 decision (if, loop, case, catch, `&&`, ternary); braces, logging and plain assignments may share a beat only within that limit. A branch body of four statements therefore takes two beats. Use it for every complex unit AND for
+  the one or two most important units of each problem or topic, the ones it hinges on, even when the build does not
+  flag them.
+- `line`: one beat per meaningful line. Only when the user asked for line-by-line (for named functions, or for every
+  non-trivial piece); the orchestrator then gives you a `DEPTH_LINE` instruction.
+- Absent: the build judges. `show_snippet.py` prints `complexity: high|low -> depth ...` for each excerpt; follow it unless
+  you know better. A complex or core unit (3 decision rows, or 2 when it runs in 2+ simulator scenarios) with no `depth`
+  and beats over the limit is a finding, and `depth: N items explained too coarsely` must reach 0. Set `deep` or `line`
+  where they apply, and `normal` to opt a truly flat unit out of the flag. An invalid value is listed in `lint.txt`.
+- Change mode: depth applies to the shown excerpt only (the changed lines plus context, or a new unit whole). It never
+  turns on `whole`; a trimmed unit stays trimmed, and its deep beats explain the changed lines.
+- Deep beats take longer to voice (more, shorter lines); that is the point, so do not merge beats to save time.
 
 ## Writing the explanations
 

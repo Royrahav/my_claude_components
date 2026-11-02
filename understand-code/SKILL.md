@@ -48,10 +48,11 @@ Same steps and order as understand-change, so two runs on the same scope give th
    `scenarios.json`.
 4. **Story writers** with brief 3: `story_<part>.json` per writer, and the **deck writer** with brief 4 (`deck.json`). Brand: code in a labOS codebase (Perforce tree under `C:\P4SPACE`, or a labOS repo) gets `"brand": {"name": "labOS", "logo": "labos"}` with no question; for any other codebase ask the user once (AskUserQuestion, batched with other questions) for the company or product name and a logo file, or none. Writers print each excerpt with
    `S/scripts/show_snippet.py`, so beats anchor to lines the reader will actually see.
+   Complex and core units are explained deep (a beat per decision, saying why); simple ones in blocks. If the user asks for line by line ("line by line for X", or for everything), fill `{DEPTH_LINE}` in brief 3 with those refs; deep and line items take longer to voice.
 5. **Build to verify**: `python S/scripts/build_prmap.py --dir W W/out.html --repo <root>`. It checks every ref
    and beat anchor and reports how many in-scope code files and modules the walkthrough explains. Fix every
    error and warning, and every finding in `W/lint.txt` (code no beat explains, long excerpts needing `span`,
-   simulator jumps; `beats: N items leave code unexplained` must reach 0; with a deck, `deck: ... L lint` must reach 0 too) (send a correction to the agent that wrote the file if it is more than a few lines). Never
+   simulator jumps; `beats: N items leave code unexplained` must reach 0; `depth: N items explained too coarsely` must reach 0; with a deck, `deck: ... L lint` must reach 0 too) (send a correction to the agent that wrote the file if it is more than a few lines). Never
    pass `--allow-unresolved`.
 6. **Voice it** (free, local, CPU; in the background): `python S/scripts/narrate.py --dir W`. It lints the
    script, then Kokoro records each line at about real time (clips are cached, so a rerun records only changed

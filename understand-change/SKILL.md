@@ -35,11 +35,12 @@ with fixed briefs. `S` is this skill's folder; `W` is a scratch folder (scratchp
    file's job and change, modules, real import edges) and `scenarios.json` (the simulator plus its narration).
 4. **Story writers** with brief 3: `story_<part>.json` per writer, and the **deck writer** with brief 4 (`deck.json`). Brand: a change in a labOS codebase (Perforce tree under `C:\P4SPACE`, or a labOS repo) gets `"brand": {"name": "labOS", "logo": "labos"}` with no question; for any other codebase ask the user once (AskUserQuestion, batched with other questions) for the company or product name and a logo file, or none. Writers print each item's excerpt with
    `S/scripts/show_snippet.py`, so beats anchor to lines the reader will actually see.
+   Complex and core units are explained deep (a beat per decision, saying why); simple ones in blocks. If the user asks for line by line ("line by line for X", or for everything), fill `{DEPTH_LINE}` in brief 3 with those refs; deep and line items take longer to voice.
 5. **Build to verify**: `python S/scripts/build_prmap.py --dir W W/out.html --repo <root>`. It merges the story
    parts, extracts every excerpt from the real diff, checks every ref and beat anchor, places unplaced nodes,
    and reports how many changed code files the walkthrough explains. Fix every error and warning it prints, and
    every finding in `W/lint.txt` (code no beat explains, long excerpts needing `span`, simulator jumps; the
-   summary line `beats: N items leave code unexplained` must reach 0; with a deck, `deck: ... L lint` must reach 0 too) (send a correction to the agent that wrote the file if it is more than a few lines). Never pass
+   summary line `beats: N items leave code unexplained` must reach 0; `depth: N items explained too coarsely` must reach 0; with a deck, `deck: ... L lint` must reach 0 too) (send a correction to the agent that wrote the file if it is more than a few lines). Never pass
    `--allow-unresolved` to ship a guess.
 6. **Voice it** (free, local, CPU; run in the background): `python S/scripts/narrate.py --dir W`. It lints the
    script, then Kokoro records the lines in parallel processes (`--jobs`, default up to 4, about 500 MB each; one

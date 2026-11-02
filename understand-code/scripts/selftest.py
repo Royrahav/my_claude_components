@@ -13,6 +13,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from collect_code import code_size  # noqa: E402
 from deck_selftest import deck_checks, page_data  # noqa: E402
+from depth_selftest import depth_checks  # noqa: E402
 from snippets import find_block, snippet  # noqa: E402
 
 GREET = ('def greet(name):\n    if not name:\n        raise ValueError("name is required")\n    return "hello " + name\n\n\n'
@@ -93,6 +94,7 @@ def main():
         (' 0 unresolved' in report, 'all refs resolve'),
         ('explain 2 of 2 in-scope code files; 1 of 1 code modules have an item' in report, 'coverage counts files and modules'),
         ('not in the excerpt shown' not in report, 'beat anchors are on screen'),
+        ('depth: 0 items explained too coarsely' in report, 'the build summarizes items explained too coarsely'),
         ('units: 1 definitions no item shows' in report and 'Greeter.cpp: void ClCaller::Run()' in lint, 'in-scope definitions no item shows are listed'),
         ('story g: excerpt lines 1-1 (file lines) no beat explains' in lint, 'lint.txt lists the stretch no beat explains'),
         ('story r1' not in lint and 'story r2' not in lint and 'the parts of this unit' not in lint, 'parts that cover the whole unit are clean'),
@@ -102,7 +104,7 @@ def main():
         (miss['span_miss'] and len(miss['lines']) == 102, 'an unresolved span falls back to the whole unit'),
         (find_block(['ClFoo::ClFoo()', ': m_a(1)', ', m_b(2)', '{', '    Init();', '}', '', 'void ClFoo::Run()', '{', '}'], 'ClFoo::ClFoo')[:2] == (0, 5),
          'a C++ constructor keeps its column-0 initializer list and body'),
-    ]
+    ] + depth_checks()
     if os.path.exists(out):
         with open(out, encoding='utf-8') as f:
             page = f.read()

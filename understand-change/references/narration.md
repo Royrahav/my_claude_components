@@ -49,11 +49,23 @@ In the walkthrough, an item's narration is split into `beats`, so the line marke
 The first beat anchors on the first shown line (the doc comment or signature) and runs on to the next beat; a
 `null` first beat would leave that head uncovered.
 
-- **Beats cover every shown line, top to bottom.** Each beat is 1-2 sentences (8-35 words) and explains a whole
-  block as one unit, so long code needs few beats: a beat marks its first line with `code` and runs to the line
-  before the next beat's first line (the last beat runs to the end). `"to": "<text on its last line>"` ends the
-  range earlier; a list of anchors marks exactly those lines (plus the run after the last). The build resolves
-  each range against the excerpt and lists in `WORK/lint.txt` any stretch no beat covers; leave none.
+- **Beats cover every shown line, top to bottom, and their grain follows the item's `depth`** (`story.md`, "Choosing
+  depth"). A beat marks its first line with `code` and runs to the line before the next beat's first line (the last
+  beat runs to the end). `"to": "<text on its last line>"` ends the range earlier; a list of anchors marks exactly
+  those lines (plus the run after the last). The build resolves each range against the excerpt and lists in
+  `WORK/lint.txt` any stretch no beat covers; leave none.
+  - `normal` (simple or flat code): 1-2 sentences, a beat per block, so long code needs few beats.
+  - `deep` (complex or important code): after the core-intention beat, one beat per decision, branch, loop, lock, early
+    return, error path or non-obvious line, each saying why. No beat covers more than 3 code lines or more than 1 decision (if, loop, case, catch, `&&`, ternary); braces, logging and plain assignments may share a beat only within that limit. A unit with many decisions gets many
+    beats; patience is the point.
+  - `line` (only when asked): one beat per meaningful line.
+  Every beat stays 8-35 words, one idea, in whatever depth.
+- **A fine beat says why, not what.** The line is already on screen; the voice gives the reason it is there: what
+  breaks without it, why this order, value or condition.
+  Bad: "It checks whether the entry is null."
+  Good: "Null here means another request evicted the cache entry mid-flight, so it reloads instead of failing the request."
+  Bad: "It takes the lock."
+  Good: "The lock is taken before the count is read, because two requests could otherwise both see room for one more queue."
 - `code` and `to` are exact substrings of a shown line. A beat's search starts at the previous beat's first line,
   so repeated text (`return err`) lands on the right line; quote more of the line to be unambiguous.
 - The first beat is the unit's core intention: why it exists and what it guarantees. In change mode, for a modified

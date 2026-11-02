@@ -11,6 +11,10 @@ SLIDE_TYPES = ['title', 'value', 'before_after', 'system', 'flow', 'risk', 'take
 LEVELS = ['low', 'medium', 'high']
 MAX_FLOWS = 3
 MAX_TERMS, TERM_MEANS_WORDS = 8, 15
+MAX_DATABASE = 8
+DB_USES = ['new column', 'new table', 'changed column', 'reads', 'writes']
+DB_SCHEMA_USES = DB_USES[:3]  # a change to the schema: a risk area that needs a detail on how it reaches site databases
+DB_WORDS = re.compile(r'\b(database|sql|schema|migration|tables?)\b', re.I)
 BRAND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'assets', 'brands')
 LOGO_TYPES = {'.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp'}
 RANGES = {'cards': (2, 4), 'blocks': (3, 7), 'actors': (2, 5), 'steps': (2, 7), 'areas': (1, 6), 'points': (2, 4), 'stats': (0, 4)}
@@ -33,10 +37,10 @@ def reveal_steps(sl):
             'flow': len(sl.get('steps') or []) + 1, 'risk': 5, 'takeaways': len(sl.get('points') or [])}.get(kind, 0)
 
 
-OBJECT_LISTS = ('stats', 'cards', 'blocks', 'links', 'actors', 'steps', 'areas', 'mitigations')
+OBJECT_LISTS = ('stats', 'cards', 'blocks', 'links', 'actors', 'steps', 'areas', 'mitigations', 'database')
 OBJECTS = ('before', 'after')
 TEXT_LISTS = ('points', 'watch', 'step_notes')
-TEXT_FIELDS = ('title', 'scenario', 'ref', 'id', 'from', 'to', 'when')
+TEXT_FIELDS = ('title', 'scenario', 'ref', 'id', 'from', 'to', 'when', 'table', 'use', 'detail')
 
 
 def shape_errors(n, sl):
@@ -141,8 +145,12 @@ def shown_texts(sl):
         yield key, sl.get(key), limit
     for a in sl.get('areas') or []:
         yield 'area name', a.get('name'), 5
+    for a in sl.get('areas') or []:
+        yield 'area why', a.get('why'), 20
     for m in sl.get('mitigations') or []:
         yield 'mitigation', m.get('text'), 16
+    for d in sl.get('database') or []:
+        yield 'database detail', d.get('detail'), 12
     for w in sl.get('watch') or []:
         yield 'watch item', w, 12
     for p in sl.get('points') or []:
@@ -243,6 +251,43 @@ def _terms_lint(deck, symbols):
     return out
 
 
+def table_names(deck):
+    """The database tables the deck names: shown verbatim, so never code-like."""
+    return [d['table'] for sl in deck.get('slides', []) for d in sl.get('database') or [] if d.get('table')]
+
+
+def _database_lint(deck):
+    """The database list of a risk slide (known uses, a detail for every schema change) and a changed block that talks about the database with no list."""
+    slides = deck.get('slides', [])
+    out = []
+    for n, sl in enumerate(slides, 1):
+        rows = sl.get('database') or []
+        out += ['deck slide %d: %d database rows (use at most %d)' % (n, len(rows), MAX_DATABASE)] if len(rows) > MAX_DATABASE else []
+        out += ['deck slide %d: database use "%s" is unknown (use %s)' % (n, d.get('use'), ', '.join(DB_USES)) for d in rows if d.get('use') not in DB_USES]
+        out += ['deck slide %d: database table "%s" is a %s with no detail (say how it reaches site databases, or that no script is in this change)'
+                % (n, d.get('table'), d['use']) for d in rows if d.get('use') in DB_SCHEMA_USES and not d.get('detail')]
+    touched = [b.get('name') for sl in slides if sl.get('type') == 'system' for b in sl.get('blocks') or []
+               if b.get('status') in ('new', 'changed') and DB_WORDS.search('%s %s' % (b.get('name'), b.get('text')))]
+    touched += [a.get('name') for sl in slides if sl.get('type') == 'flow' for a in sl.get('actors') or [] if a.get('icon') == 'db']
+    listed = any(sl.get('database') for sl in slides if sl.get('type') == 'risk')
+    return out + (['database touched but no database list ("%s" is the database or mentions it; list the tables on the risk slide)' % touched[0]] if touched and not listed else [])
+
+
+def _areas_lint(n, sl):
+    return ['deck slide %d: area "%s" has no why (ground its level in what the code touches, max 20 words)' % (n, a.get('name')) for a in sl.get('areas') or [] if not a.get('why')]
+
+
+def _database_step_lint(n, sl, tables):
+    """A flow step that touches a database actor has to name one of the risk slide's tables (checked only when that list exists)."""
+    pattern = term_pattern(tables)
+    dbs = {a.get('id') for a in sl.get('actors') or [] if a.get('icon') == 'db'}
+    if sl.get('type') != 'flow' or not pattern:
+        return []
+    return ['deck flow slide %d step %d touches the database but names no table (%s)' % (n, i, ', '.join(tables))
+            for i, st in enumerate(sl.get('steps') or [], 1)
+            if {st.get('from'), st.get('to')} & dbs and not pattern.search('%s %s' % (st.get('label'), st.get('text')))]
+
+
 def _flow_lint(n, sl):
     return ['deck slide %d: flow has no "when" (who does what and why, the trigger, max 20 words)' % n] if sl.get('type') == 'flow' and not sl.get('when') else []
 
@@ -250,12 +295,12 @@ def _flow_lint(n, sl):
 def deck_lint(deck, scenario_ids, code_mode, symbols):
     """Warnings only (never errors): structure, counts, word limits, missing notes or stat sources, code-like words in shown text."""
     slides = deck.get('slides', [])
-    names = [t.get('term') for t in deck.get('terms') or []]
-    out = _structure_lint(slides, scenario_ids, code_mode) + _terms_lint(deck, symbols)
+    names = [t.get('term') for t in deck.get('terms') or []] + table_names(deck)
+    out = _structure_lint(slides, scenario_ids, code_mode) + _terms_lint(deck, symbols) + _database_lint(deck)
     if len((deck.get('title') or '').split()) > 9:
         out.append('deck: title is over 9 words')
     for n, sl in enumerate(slides, 1):
-        out += _count_lint(n, sl) + _notes_lint(n, sl) + _flow_lint(n, sl)
+        out += _count_lint(n, sl) + _notes_lint(n, sl) + _flow_lint(n, sl) + _areas_lint(n, sl) + _database_step_lint(n, sl, table_names(deck))
         out += ['deck slide %d: stat "%s" has no source (commit, ticket, test, config or doc)' % (n, st.get('label')) for st in sl.get('stats') or [] if not st.get('source')]
         for field, text, limit in shown_texts(sl):
             words = len(str(text or '').split())

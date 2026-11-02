@@ -307,7 +307,18 @@ code, .mono, .code, .io, .curl, .ref { font-variant-ligatures: none; }
 .dk-needle-hub { fill: var(--ink); }
 .dk-level { font-weight: 700; font-size: 1.3em; text-align: center; }
 .dk-level.low { color: var(--new); } .dk-level.medium { color: var(--chg); } .dk-level.high { color: var(--bad); }
-.dk-area { display: grid; grid-template-columns: minmax(0, 1fr) 6em; gap: 0.2em 0.6em; align-items: center; font-size: 0.95em; }
+.dk-area { display: grid; grid-template-columns: minmax(0, 1fr) 8.5em; gap: 0.2em 0.6em; align-items: center; font-size: 0.95em; }
+/* The risk slide's database list: schema changes (new column, new table, changed column) wear a danger badge. */
+.dk-db { display: flex; flex-direction: column; gap: 0.4em; margin-top: 0.4em; padding-top: 0.6em; border-top: 1px dashed var(--line); }
+.dk-db h4 { margin: 0; font-size: 0.8em; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.dk-dbrow { display: grid; grid-template-columns: auto auto; justify-content: start; gap: 0.1em 0.6em; align-items: baseline; font-size: 0.95em; }
+.dk-dbrow code { font-family: var(--mono); font-weight: 600; }
+.dk-dbuse { font-size: 0.8em; font-weight: 700; padding: 0.05em 0.6em; border-radius: 99px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); }
+.dk-dbuse.schema { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+.dk-dbdetail { grid-column: 1 / 3; color: var(--muted); }
+/* The "Why" button next to an area's level: its text shows in the deck's one .dk-tip, like a term's meaning. */
+.dk-why { font: inherit; font-size: 0.8em; font-weight: 700; margin-left: 0.5em; padding: 0.05em 0.6em; border-radius: 99px; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent); cursor: help; }
+.dk-why:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .dk-track { height: 0.7em; border-radius: 99px; background: var(--line); overflow: hidden; }
 .dk-fill { display: block; height: 100%; border-radius: 99px; transform-origin: left; background: var(--new); }
 .dk-fill.i2 { background: var(--chg); } .dk-fill.i3 { background: var(--bad); }
@@ -1194,6 +1205,9 @@ code, .mono, .code, .io, .curl, .ref { font-variant-ligatures: none; }
       step ? h('div', { class: 'dk-cap' + (step.fail ? ' bad' : ''), 'aria-live': 'polite' }, h('b', {}, dkText((cur + 1) + '. ' + (step.label || ''))), dkText(step.text)) : h('div', { class: 'dk-cap muted' }, 'Next shows the first step of the use case.'),
       sl.result ? h('div', { class: 'dk-result' + (st.length && st[st.length - 1].fail ? ' bad' : '') + (done ? '' : ' dk-off') + (done && dkFresh(c, st.length) ? ' dk-pop' : '') }, dkText(sl.result)) : null];
   }
+  const DK_SCHEMA_USES = ['new column', 'new table', 'changed column'];  // keep in step with DB_SCHEMA_USES in scripts/deck.py
+  const dkDatabase = sl => (sl.database || []).length ? h('div', { class: 'dk-db' }, h('h4', {}, 'Database'), (sl.database || []).map(d => [
+    h('div', { class: 'dk-dbrow' }, h('code', {}, d.table), h('span', { class: 'dk-dbuse' + (DK_SCHEMA_USES.includes(d.use) ? ' schema' : '') }, d.use), d.detail ? h('span', { class: 'dk-dbdetail' }, dkText(d.detail)) : null)])) : null;
   function dkRisk(sl, c) {
     const lvl = ['low', 'medium', 'high'].includes(sl.level) ? sl.level : 'medium', to = { low: -60, medium: 0, high: 60 }[lvl];
     const pt = deg => [100 - 80 * Math.cos(deg * Math.PI / 180), 100 - 80 * Math.sin(deg * Math.PI / 180)];
@@ -1206,7 +1220,7 @@ code, .mono, .code, .io, .curl, .ref { font-variant-ligatures: none; }
     return h('div', { class: 'dk-risk' },
       card(0, 'Risk level', gauge, h('div', { class: 'dk-level ' + lvl }, lvl.toUpperCase()), h('p', {}, dkText(sl.reason))),
       card(1, 'Affected areas', (sl.areas || []).map((a, i) => { const imp = Math.min(3, Math.max(1, Number(a.impact) || 1));
-        return h('div', { class: 'dk-area' }, h('span', {}, dkText(a.name)), h('span', { class: 'muted' }, ['low', 'medium', 'high'][imp - 1]), h('div', { class: 'dk-track', style: 'grid-column:1/3' }, h('i', { class: 'dk-fill i' + imp + (fresh(1) ? ' dk-growing' : ''), style: 'width:' + (imp * 100 / 3) + '%' + (fresh(1) ? ';animation-delay:' + (0.15 * i) + 's' : '') }))); })),
+        return h('div', { class: 'dk-area' }, h('span', {}, dkText(a.name)), h('span', { class: 'muted' }, ['low', 'medium', 'high'][imp - 1], a.why ? h('button', { type: 'button', class: 'dk-why', 'data-means': a.why, 'aria-label': 'Why ' + a.name + ' is rated ' + ['low', 'medium', 'high'][imp - 1] + ': ' + a.why }, 'Why') : null), h('div', { class: 'dk-track', style: 'grid-column:1/3' }, h('i', { class: 'dk-fill i' + imp + (fresh(1) ? ' dk-growing' : ''), style: 'width:' + (imp * 100 / 3) + '%' + (fresh(1) ? ';animation-delay:' + (0.15 * i) + 's' : '') }))); }), dkDatabase(sl)),
       card(2, 'Mitigations', h('ul', { class: 'dk-list' }, (sl.mitigations || []).map((m, i) => h('li', { title: m.ref || null },
         s('svg', { viewBox: '0 0 24 24', width: 20, height: 20, 'aria-hidden': 'true' }, s('path', { class: 'dk-tick' + (fresh(2) ? ' dk-drawn' : ''), d: 'M4 12l5 5L20 6', pathLength: 1, style: fresh(2) ? 'animation-delay:' + (0.25 * i) + 's' : null })), h('span', {}, dkText(m.text)))))),
       card(3, 'Rollout and rollback', h('div', { class: 'dk-tl' }, h('div', { class: 'dk-node' }, h('b', {}, 'Rollout'), dkText(sl.rollout)), h('div', { class: 'dk-node back' }, h('b', {}, 'Rollback'), dkText(sl.rollback)))),
@@ -1243,7 +1257,7 @@ code, .mono, .code, .io, .curl, .ref { font-variant-ligatures: none; }
       tip.style.left = Math.max(8, Math.min(r.left, innerWidth - tip.offsetWidth - 8)) + 'px';
       tip.style.top = (below ? r.bottom + 6 : Math.max(8, r.top - tip.offsetHeight - 6)) + 'px';
     }
-    const onTerm = (act, e) => { const t = e.target.closest && e.target.closest('.dk-term'); if (t) act(t); };
+    const onTerm = (act, e) => { const t = e.target.closest && e.target.closest('.dk-term, .dk-why'); if (t) act(t); };
     const cur = () => DECK[dk.i], last = () => dk.i === DECK.length - 1 && dk.r >= dkSteps(cur());
     function draw(anim) {
       cancelAnimationFrame(dk.raf); dk.raf = 0; hideTip();
@@ -1302,7 +1316,7 @@ code, .mono, .code, .io, .curl, .ref { font-variant-ligatures: none; }
     const notesB = h('button', { class: 'btn', 'aria-pressed': dk.notes ? 'true' : 'false', title: 'Speaker notes (N)', onclick: () => dk.api.toggleNotes() }, 'Notes');
     const presB = h('button', { class: 'btn', title: 'Present full screen (F), Esc exits', onclick: () => present(!dk.present) }, 'Present');
     const wrap = h('div', { class: 'dk-wrap' }, h('div', { class: 'controls dk-bar' }, backB, nextB, counter, notesB, presB), h('div', { class: 'dk-prog' }, fill), stage, notesEl, tip);
-    [['mouseover', showTip], ['focusin', showTip], ['mouseout', hideTip], ['focusout', hideTip]].forEach(([type, act]) => wrap.addEventListener(type, e => onTerm(act, e)));
+    [['mouseover', showTip], ['focusin', showTip], ['click', showTip], ['mouseout', hideTip], ['focusout', hideTip]].forEach(([type, act]) => wrap.addEventListener(type, e => onTerm(act, e)));
     dk.api = { next, back, jump, setNotes, present, fit, toggleNotes: () => setNotes(!notesOn()) };
     dk.i = Math.min(dk.i, DECK.length - 1);
     if (typeof ResizeObserver === 'function') { dk.ro = new ResizeObserver(fit); dk.ro.observe(stage); }

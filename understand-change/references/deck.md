@@ -11,12 +11,42 @@ is exactly what it was. The page still opens on the Map; `#brief` opens the deck
   stakeholders use: the map's node names (`layout.json`, `inventory.json`), the ticket and, in a labOS codebase, the
   `domain-glossary` skill (LaaSServer, CleanStation, the caller, the app). Never a generic stand-in ("integration
   server", "cleanup service", "server A"). List each product name a stakeholder might not know in `terms`.
+- **Full scope, then the example.** When the mechanism is generic (any entity, any process, any caller), say so in the
+  title, subtitle, system slide and takeaways, and present the concrete case as "our example". Check the scope in the
+  code (what it keys on) and never narrow it to the example ("any locked entity, by LaaSServer or any other process",
+  not "orders only").
+- **High level, not one integration.** Use cases describe the mechanism with a generic actor ("API caller", "a labOS
+  process"), not one partner's or customer's specific flow. A specific partner may appear only as "for example" in a note.
+- **The core concept gets its own explanation.** When the change revolves around an internal concept (a "mark", say),
+  explain it visibly: its own flow slide or system block that shows what it is, where it is stored (table and column,
+  new or existing) and what its values mean. A hover term alone is not enough.
+- **What is left out gets its why and its how.** When the change deliberately leaves a case out or treats it
+  differently (a lock kept on purpose across calls, one request type, one entity), give that case its own use case and
+  say: why it is out (the business reason), how the code tells the cases apart (the rule it keys on, in plain words:
+  "still held when the answer goes out", not "a special check"), what keeps it safe when something fails, and what
+  covers that case instead. Stakeholders ask this first; a hover or one speaker note is not enough.
+- **Separate parts, separate roles.** When a component has parts that act separately or at different times (a creator
+  or scheduler and a worker, producer and consumer, client and server), show them as separate system blocks and
+  separate flow actors, each step saying which part does what and when. Never merge them under the parent's name.
 - **Business words only.** No file names, paths, extensions, function or class names, `()`, `::`, arrows, hashes,
   snake_case or camelCase. The build lints this; a finding means rewrite the sentence, not hide the word. Product and
   company names (labOS, PostgreSQL) and the listed `terms` are fine.
+- **Every area says why.** An area's `why` grounds its level in what the code touches ("new column on a table every
+  lock writes"), not in a feeling. It shows from a "Why" button next to the level, on hover, focus or tap.
+- **Database, always named.** Whenever the change reads or writes the database, name the tables: in the system block's
+  text and in the risk slide's `database` list (table names are shown verbatim and are never linted as code). Every new
+  or changed column or table is listed with its name, called out as a risk area (it gets a danger badge), and its
+  `detail` says how it reaches site databases: a script in the change, or "no script in this change". Never guess.
+- **Every database step names its table.** A flow step that touches the database says which table in its label or text
+  ("Lock and mark (lck)"). The lint flags a step to or from a database actor that names none of the risk slide's
+  `database` tables.
 - **Clear use cases.** A flow slide says who does what and why (`when`, the trigger) before the steps. Each step names
   a real actor doing a concrete thing ("The lab app asks CleanStation to wash the tray"), never an abstract label
-  ("processing", "handling"). The `result` states the outcome for the user or the business.
+  ("processing", "handling"). The `result` states the outcome for the user or the business. When a caller's API calls
+  are involved, name each call as the caller sees it ("Lock call", "Release call") and keep what happens inside one
+  call apart from what happens across calls. Explain any internal concept a slide relies on (a "mark", say) in plain
+  words and add it to `terms`.
+- **Updating a deck: re-check against the code.** Never copy facts from the previous deck.json; verify each one again.
 - **Why before how.** Order is value, purpose, then mechanism, then risk. A stakeholder who stops after slide 3 should
   already know why the work exists.
 - **No invented numbers.** A number appears only when a commit, ticket, test, config or doc states it, and then it
@@ -62,7 +92,8 @@ is exactly what it was. The page still opens on the Map; `#brief` opens the deck
       "result": "max 16 words: the outcome for the user or business" },   // shown as a final reveal
     { "type": "risk", "title": "Risk and release", "notes": "...",
       "level": "low|medium|high", "reason": "max 25 words",
-      "areas": [{ "name": "max 5 words", "impact": 1 }],            // impact 1-3, 1-6 areas
+      "areas": [{ "name": "max 5 words", "impact": 1, "why": "max 20 words" }],   // impact 1-3, 1-6 areas; why: what the code touches that earns this level
+      "database": [{ "table": "lck", "use": "new column|new table|changed column|reads|writes", "detail": "max 12 words" }],   // optional, 0-8; shown with the areas reveal (no extra step)
       "mitigations": [{ "text": "max 16 words", "ref": "optional path → Symbol" }],
       "rollout": "max 20 words", "rollback": "max 20 words", "watch": ["max 12 words"],
       "step_notes": ["level", "areas", "mitigations", "rollout and rollback", "watch"] },                       // 5 notes, one per reveal
@@ -76,6 +107,11 @@ A slide title is at most 9 words. An unknown icon draws a dot.
 **Terms.** A listed term is a product name: it is exempt from the code-like lint (CamelCase names such as CleanStation
 or LaaSServer) and, wherever it appears in shown text (not case-sensitive, whole word), it gets a dotted underline and
 its meaning as a hover or keyboard-focus tooltip, in present mode too.
+
+**Database.** A risk slide's `database` rows show in the Affected areas card (the same reveal): table, use, detail. A
+new column, new table or changed column gets a danger badge. The lint flags an unknown `use`, a detail over 12 words, a
+schema change with no detail, and a new or changed system block that mentions the database, SQL, schema, migration or a table (or a flow
+actor with the database icon) while no risk slide has a `database` list.
 
 **Brand.** With a `brand`, the build embeds the logo in the page (the built-in `labos` is `assets/brands/labos.svg`):
 large on the title slide, small in the corner of every other slide, the brand name as its alt text; on the dark theme

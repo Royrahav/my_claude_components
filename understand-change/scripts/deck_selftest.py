@@ -31,7 +31,8 @@ def sample_deck(scenario_id, ref, code_mode):
          'steps': [{'from': 'caller', 'to': 'app', 'label': 'asks', 'text': 'The caller asks for a greeting.', 'note': 'Step one.'},
                    {'from': 'app', 'to': 'caller', 'label': 'refuses', 'text': 'The greeter refuses at once.', 'fail': True, 'note': 'Step two.'}]},
         {'type': 'risk', 'title': 'Risk and release', 'notes': 'Risk.', 'level': 'low', 'reason': 'Small change with tests behind it.',
-         'areas': [{'name': 'Greetings', 'impact': 2}], 'mitigations': [{'text': 'Unit tests cover the new rule.', 'ref': ref}],
+         'areas': [{'name': 'Greetings', 'impact': 2, 'why': 'Every greeting passes through the changed check.'}], 'database': [{'table': 'greetings', 'use': 'new column', 'detail': 'No script in this change.'}],
+         'mitigations': [{'text': 'Unit tests cover the new rule.', 'ref': ref}],
          'rollout': 'Ship with the next release.', 'rollback': 'Revert the change.', 'watch': ['Support tickets about greetings.'],
          'step_notes': ['Low risk.', 'One area.', 'Tests back it.', 'Easy to undo.', 'Watch support.']},
         {'type': 'takeaways', 'title': 'To remember', 'notes': 'Close.', 'points': ['Empty names are refused.', 'Callers see a clear error.'], 'step_notes': ['First point.', 'Second point.']}]
@@ -91,6 +92,48 @@ def term_and_when_checks(deck, build_with):
     return checks
 
 
+def database_checks(deck, build_with):
+    """[(ok, name)] for the database list lints: unknown use, long detail, schema change without detail, a changed block that mentions the database with no list."""
+    risk = lambda d: next(s for s in d['slides'] if s['type'] == 'risk')
+    rows = copy.deepcopy(deck)
+    risk(rows)['database'] += [{'table': 'lab_orders', 'use': 'reads', 'detail': 'Reads lab_orders once per greeting.'}, {'table': 'a', 'use': 'drops'},
+                               {'table': 'b', 'use': 'new table'}, {'table': 'c', 'use': 'writes', 'detail': ' '.join(['word'] * 13)}]
+    _, _, lint = build_with(rows)
+    checks = [('database use "drops" is unknown' in lint and 'database table "b" is a new table with no detail' in lint and 'database detail is 13 words (max 12)' in lint,
+               'database lint: unknown use, schema change without detail, long detail'),
+              ('lab_orders' not in lint and 'database table "greetings"' not in lint, 'a table name is never code-like and a schema change with a detail is clean')]
+    flow = copy.deepcopy(deck)
+    scene = next(s for s in flow['slides'] if s['type'] == 'flow')
+    scene['actors'].append({'id': 'store', 'name': 'Greetings table', 'icon': 'db'})
+    scene['steps'].append({'from': 'app', 'to': 'store', 'label': 'saves it', 'text': 'The greeter saves it.', 'note': 'Step three.'})
+    unnamed = build_with(flow)[2]
+    scene['steps'][-1]['label'] = 'saves it (greetings)'
+    checks.append(('step 3 touches the database but names no table' in unnamed and 'step 3 touches the database' not in build_with(flow)[2],
+                   'a flow step to a database actor must name a table of the database list'))
+    whys = copy.deepcopy(deck)
+    risk(whys)['areas'] += [{'name': 'Silent area', 'impact': 1}, {'name': 'Wordy area', 'impact': 1, 'why': ' '.join(['word'] * 21)}]
+    lint = build_with(whys)[2]
+    checks.append(('area "Silent area" has no why' in lint and 'area why is 21 words (max 20)' in lint and 'area "Greetings"' not in lint, 'area why lint: missing and over 20 words'))
+    touched = copy.deepcopy(deck)
+    risk(touched).pop('database')
+    next(s for s in touched['slides'] if s['type'] == 'system')['blocks'][1]['text'] = 'Adds a column to the greetings table.'
+    marker = 'database touched but no database list'
+    checks.append((marker in build_with(touched)[2], 'a changed block that mentions the database with no database list is linted'))
+    fresh, grid, actor = copy.deepcopy(touched), copy.deepcopy(touched), copy.deepcopy(touched)
+    block = lambda d: next(s for s in d['slides'] if s['type'] == 'system')['blocks'][1]
+    block(fresh).update(status='new', text='Keeps each hold in a new table.')
+    block(grid)['text'] = 'Shows a new column in the results grid.'
+    next(s for s in actor['slides'] if s['type'] == 'flow')['actors'].append({'id': 'store', 'name': 'Store', 'icon': 'db'})
+    checks += [(marker in build_with(fresh)[2], 'a new block that adds a table is linted without a database list'),
+               (marker not in build_with(grid)[2], 'a column in the results grid is not a database change'),
+               (marker in build_with(actor)[2], 'a database actor with no database list is linted')]
+    both = copy.deepcopy(touched)
+    next(s for s in both['slides'] if s['type'] == 'system')['database'] = [{'table': 'x', 'use': 'drops'}]
+    lint = build_with(both)[2]
+    checks.append((marker in lint and 'database use "drops" is unknown' in lint, 'the touched warning does not hide the other database warnings'))
+    return checks
+
+
 def deck_checks(work, repo, build, scenario_id, ref, code_mode, report, data):
     """[(ok, name)]. `build(out)` runs the builder on `work` into `out`; `report` and `data` are from the build without a deck."""
     checks = [('\ndeck:' not in '\n' + report and 'deck' not in data, 'without deck.json the page data and the build output carry no deck')]
@@ -114,6 +157,7 @@ def deck_checks(work, repo, build, scenario_id, ref, code_mode, report, data):
         ('deck: %d slides (1 flows), %d reveal steps; 0 lint' % (len(deck['slides']), steps) in text, 'the build prints the deck summary line'),
         ((payload.get('deck') or {}).get('slides') == deck['slides'] and payload['deck'].get('terms') == deck['terms'], 'the deck and its terms are embedded in the page data'),
         ('brand' not in payload.get('deck', {}), 'a deck without a brand carries no logo'),
+        (next(s for s in payload['deck']['slides'] if s['type'] == 'risk')['database'] == next(s for s in deck['slides'] if s['type'] == 'risk')['database'], 'the risk slide database list is embedded'),
         ('deck' in payload and 'deck' not in data, 'only the deck build puts a deck in the page data (the Brief tab shows when it is there)'),
         ('reads as code' not in lint, 'a deck in business words has no jargon lint'),
     ]
@@ -123,7 +167,7 @@ def deck_checks(work, repo, build, scenario_id, ref, code_mode, report, data):
     checks += [('card text "src/app/greet.py" reads as code' in lint and 'labOS' not in lint and 'PostgreSQL' not in lint and 'iPhone' not in lint,
                 'jargon lint flags a file path and leaves product names alone')]
     checks += brand_checks(deck, build_with, work)
-    checks += term_and_when_checks(deck, build_with)
+    checks += term_and_when_checks(deck, build_with) + database_checks(deck, build_with)
     bad = copy.deepcopy(deck)
     next(s for s in bad['slides'] if s['type'] == 'flow')['steps'][0]['to'] = 'nobody'
     done, text, _ = build_with(bad)
@@ -154,6 +198,7 @@ def deck_checks(work, repo, build, scenario_id, ref, code_mode, report, data):
                          ('a mitigation that is not an object', {'slides': [{'type': 'risk', 'mitigations': ['x']}]}),
                          ('terms that are not a list of objects', {**deck, 'terms': 'x'}), ('a term without its text', {**deck, 'terms': [{'means': 'y'}]}),
                          ('a brand that is not an object', {**deck, 'brand': 'labos'}), ('a brand without a name', {**deck, 'brand': {'logo': 'labos'}}),
+                         ('a database list that is not a list of objects', {**deck, 'slides': [{'type': 'risk', 'database': 'x'}]}),
                          ('a brand logo that is not text', {**deck, 'brand': {'name': 'labOS', 'logo': 3}})):
         done, text, _ = build_with(broken)
         checks.append((done.returncode == 3 and 'malformed' in text and 'Traceback' not in text, 'deck.json with %s is malformed, not a traceback' % name))

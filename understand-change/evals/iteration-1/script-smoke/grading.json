@@ -1,0 +1,15 @@
+{
+ "expectations": [
+  {
+   "text": "selftest.py prints PASS and exits 0",
+   "passed": true,
+   "evidence": "PASS: 11 checks (C:\\Users\\roy.r\\AppData\\Local\\Temp\\uc-selftest-3hdkex8z)"
+  }
+ ],
+ "summary": {
+  "passed": 1,
+  "failed": 0,
+  "total": 1,
+  "pass_rate": 1.0
+ }
+}

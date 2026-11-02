@@ -1,0 +1,73 @@
+{
+  "skill_name": "understand-code",
+  "evals": [
+    {
+      "id": 1,
+      "name": "go-single-package",
+      "prompt": "I have to change how printgateway parses printer addresses and I never opened that code. Explain src/printgateway/internal/printer to me so I really understand it.",
+      "cwd": "C:/GitProjects/printer-server",
+      "expected_output": "A published code map (Map, Walkthrough, Simulator, Files) for internal/printer, narrated, in code mode.",
+      "files": [],
+      "assertions": [
+        "prepare.py --code sizes the scope (SMALL) and the build exits 0 with 0 unresolved refs",
+        "the walkthrough explains every in-scope code file and every code module (coverage line)",
+        "no beat anchor is missing from its excerpt (no 'not in the excerpt shown' warning)",
+        "2-4 scenarios, each entering from a real caller of the package (ref resolves outside the scope)",
+        "the page is in code mode: meta.mode = code, no +/- counts, no Commits tab",
+        "every narration line has a recorded Kokoro clip (voice: N of N)"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "vcpp-class-p4",
+      "prompt": "Explain the SendByRest class in AutocommLib (labOS VC++, MainRls). I'm going to own it.",
+      "cwd": "C:/P4SPACE/Labs/MainRls/Labs/VC++",
+      "expected_output": "A code map for SendByRest.h/.cpp with its callers as context modules, excerpts cut at each ClOwner::Method definition, synced CL shown.",
+      "files": [],
+      "assertions": [
+        "the build exits 0 with 0 unresolved refs",
+        "walkthrough refs use 'SendByRest.cpp → <Class>::<Method>' and every excerpt starts at the definition line, not a call site",
+        "callers outside the class (e.g. DownloadMessagesManager) appear as context modules with real edges",
+        "meta.version names the synced CL; no diff_base",
+        "the maintenance checklist names the guarding unit test (UT_SendByRest) where it applies"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "go-library-medium",
+      "prompt": "I'm taking over the CUPS queue library in printer-server (src/printgateway/internal/cups). Help me understand how it works end to end, I need to maintain it.",
+      "cwd": "C:/GitProjects/printer-server",
+      "expected_output": "A code map for internal/cups built with the MEDIUM staffing (sonnet inventory, one tracer, one story writer), narrated.",
+      "files": [],
+      "assertions": [
+        "the build exits 0 with 0 unresolved refs",
+        "the walkthrough explains at least 80% of in-scope code files and every code module",
+        "4-8 scenarios covering the main path, the repeat (queue already exists) and at least one failure",
+        "no beat anchor is missing from its excerpt",
+        "every narration line has a recorded Kokoro clip"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "script-smoke",
+      "prompt": "Run scripts/selftest.py here and ../understand-change/scripts/selftest.py.",
+      "expected_output": "Both print PASS.",
+      "files": [],
+      "assertions": ["both selftests print PASS"]
+    },
+    {
+      "id": 5,
+      "name": "stakeholder-brief",
+      "prompt": "I need to explain the print gateway (src/printgateway) to the stakeholders for a risk review - give me something I can present.",
+      "cwd": "C:/GitProjects/printer-server",
+      "expected_output": "The code map gains a Brief tab (first; the page still opens on Map): what the area does for the business, why it exists, how it works (system + 1-3 major flows), risk and takeaways; no before/after slide.",
+      "files": [],
+      "assertions": [
+        "deck.json builds with exit 0 and prints the deck line with 0 lint",
+        "no before_after slide; 1-3 flow slides tied to real scenario ids",
+        "every slide and reveal step carries a speaker note",
+        "without deck.json the build output and page data are identical to the pre-change engine"
+      ]
+    }
+  ]
+}

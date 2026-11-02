@@ -1,0 +1,9 @@
+{
+  "name": "labOS",
+  "mode": "light",
+  "colors": { "canvas": "#F7F9F8", "surface": "#FFFFFF", "ink": "#333333", "muted": "#5C6663", "light": "#687270", "accent": "#00B08A", "accent2": "#315372", "danger": "#DC2626" },
+  "fonts": { "display": "Comfortaa", "body": "Montserrat", "mono": "JetBrains Mono" },
+  "weights": { "display": [700], "body": [400, 700, 900], "mono": [400, 700] },
+  "logo": "logo.svg",
+  "music_prompt": "Calm, modern corporate technology background music for a product explainer video. Soft pulsing synth pads, light clean electric piano arpeggios, gentle muted percussion, warm and quietly optimistic, steady 96 BPM, no vocals, no big drops or builds, a consistent low-energy bed that sits under a voiceover, subtle evolving texture, clean resolved ending."
+}

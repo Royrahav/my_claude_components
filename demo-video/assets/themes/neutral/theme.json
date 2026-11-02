@@ -1,0 +1,8 @@
+{
+  "name": "Neutral",
+  "mode": "light",
+  "colors": { "canvas": "#F6F7F9", "surface": "#FFFFFF", "ink": "#1E2430", "muted": "#5A6272", "light": "#6B7280", "accent": "#3B5BDB", "accent2": "#0F766E", "danger": "#DC2626" },
+  "fonts": { "display": "Plus Jakarta Sans", "body": "Inter", "mono": "JetBrains Mono" },
+  "weights": { "display": [700], "body": [400, 700, 900], "mono": [400, 700] },
+  "logo": null
+}

@@ -1,0 +1,40 @@
+{
+ "expectations": [
+  {
+   "text": "deck.json builds with exit 0, prints 'deck: N slides (F flows), S reveal steps; 0 lint' and every mitigation ref resolves",
+   "passed": true,
+   "evidence": "PR #4 work folder with a deck written by the sonnet deck writer, built after fix round 2: exit 0; \"deck: 8 slides (2 flows), 32 reveal steps; 0 lint\"; \"refs: 161 checked, 0 unresolved\""
+  },
+  {
+   "text": "title, value, before_after, system, 1-3 flow slides tied to real scenario ids, risk, takeaways, in that order",
+   "passed": true,
+   "evidence": "slide types ['title','value','before_after','system','flow','flow','risk','takeaways']; flows ipp-first and smb-windows-name both exist in scenarios.json"
+  },
+  {
+   "text": "every slide and every reveal step carries a speaker note",
+   "passed": true,
+   "evidence": "deck lint (notes per slide, per card/block/step, note_after, step_notes per reveal) reports 0 findings"
+  },
+  {
+   "text": "no shown text reads as code (jargon lint 0) and every title stat has a source",
+   "passed": true,
+   "evidence": "0 deck lint findings; the 3 title stats (12, 159, 200) all carry a source"
+  },
+  {
+   "text": "Brief is the first tab, the page opens on Map, #brief opens the deck, Next/Back/keys reveal steps and Present fits the screen",
+   "passed": false,
+   "evidence": "Headless Chrome before fix round 1: Brief first, opens on Map, #brief opens the deck, keys reveal steps. Present then overflowed; fixed in round 1 (F3) and round 2 (keys, notes), but the re-check in the browser was stopped for low memory and not re-run: unverified"
+  },
+  {
+   "text": "without deck.json the embedded data, build stdout and lint.txt are identical to the pre-change engine on real past work folders",
+   "passed": true,
+   "evidence": "regress.py after fix round 2 (PYTHONHASHSEED=0): P4 CL 1025106, PR #4 and the printgateway code map: stdout, data JSON (19.7 MB, 8.0 MB, 11.8 MB) and lint.txt identical; ALL IDENTICAL"
+  }
+ ],
+ "summary": {
+  "passed": 5,
+  "failed": 1,
+  "total": 6,
+  "pass_rate": 0.83
+ }
+}

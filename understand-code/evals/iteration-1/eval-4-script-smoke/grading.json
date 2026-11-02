@@ -1,0 +1,15 @@
+{
+ "expectations": [
+  {
+   "text": "both selftests print PASS",
+   "passed": true,
+   "evidence": "understand-code: PASS: 13 checks (C:\\Users\\roy.r\\AppData\\ | understand-change: PASS: 11 checks (C:\\Users\\roy.r\\AppData\\"
+  }
+ ],
+ "summary": {
+  "passed": 1,
+  "failed": 0,
+  "total": 1,
+  "pass_rate": 1.0
+ }
+}

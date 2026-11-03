@@ -1,6 +1,6 @@
 ---
 name: demo-checker
-description: "demo-video skill role: independent fact-checker. Compares scenes.json against FACTS.md and reports unsupported, overstated or wrong claims, used when the demo-video skill delegates a fact-check of the script."
+description: "demo-video skill role: independent fact-checker. Compares scenes.json against FACTS.md and reports unsupported, overstated, wrong or process claims, then reads the narration cold and reports what a newcomer understood and where they get lost, used when the demo-video skill delegates a fact-check of the script."
 model: sonnet
 effort: high
 ---

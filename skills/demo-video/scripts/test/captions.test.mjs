@@ -139,7 +139,7 @@ for (const style of STYLES) {
     assert.deepEqual(hideTimes(captionsHtml(endingWithClose, THEME, "", style)), ends(endingWithClose));
   });
 
-  for (const themeName of ["labos", "neutral", "midnight"]) {
+  for (const themeName of ["labos", "labos-dark", "neutral", "midnight"]) {
     test(`captionsHtml_${style}On${themeName}_everyWordStateReachesAAForLargeText`, () => {
       const theme = builtInTheme(themeName);
       const css = cssOf(style, theme);

@@ -8,7 +8,7 @@
     {
       "type": "close",
       "say": "Product Name. One line to remember.",
-      "data": { "title": "Product Name", "tagline": ["One line", "to remember."], "ref": "Ref: TICKET-123" }
+      "data": { "title": "Product Name", "tagline": ["One line", "to remember."], "ref": "Available in the next version" }
     }
   ]
 }

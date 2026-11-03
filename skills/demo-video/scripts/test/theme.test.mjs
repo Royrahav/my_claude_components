@@ -1,7 +1,7 @@
 // Run: node --test "scripts/test/*.test.mjs"   (from the demo-video skill root)
 import { test, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,7 +24,7 @@ function themeWith(overrides, mode = "light") {
 
 const builtIn = (name) => loadTheme(join(THEMES_DIR, name, "theme.json"));
 
-for (const name of ["labos", "midnight", "neutral"]) {
+for (const name of ["labos", "labos-dark", "midnight", "neutral"]) {
   test(`loadTheme_builtInTheme_${name}_loadsAndDerivesTextColors`, () => {
     const theme = builtIn(name);
 
@@ -44,10 +44,27 @@ test("loadTheme_lightBuiltInThemes_keepWhiteTextOnTheAccentFill", () => {
   assert.deepEqual(["labos", "neutral"].map((name) => builtIn(name).derived.onAccentFill), ["#FFFFFF", "#FFFFFF"]);
 });
 
-test("loadTheme_midnight_usesTheDarkCanvasOnItsBrightAccentFill", () => {
-  const theme = builtIn("midnight");
+for (const name of ["midnight", "labos-dark"])
+  test(`loadTheme_${name}_usesTheDarkCanvasOnItsBrightAccentFill`, () => {
+    const theme = builtIn(name);
 
-  assert.equal(theme.derived.onAccentFill, theme.colors.canvas);
+    assert.equal(theme.derived.onAccentFill, theme.colors.canvas);
+  });
+
+test("labosDarkLogo_comparedWithLabos_differsOnlyInTheCls2Fill", () => {
+  const logoOf = (name) => readFileSync(join(THEMES_DIR, name, "logo.svg"), "utf8").replace(/(\.cls-2\s*\{\s*fill:\s*)#[0-9a-f]+/i, "$1<fill>");
+
+  assert.equal(logoOf("labos-dark"), logoOf("labos"));
+});
+
+test("loadTheme_labosDark_keepsTheLabosFontsAndAVisibleLogo", () => {
+  const dark = builtIn("labos-dark");
+  const light = builtIn("labos");
+  const logo = readFileSync(join(THEMES_DIR, "labos-dark", dark.logo), "utf8");
+
+  assert.deepEqual(dark.fonts, light.fonts);
+  assert.equal(dark.logo, "logo.svg");
+  assert.ok(contrast(logo.match(/\.cls-2\s*\{\s*fill:\s*(#[0-9a-f]+)/i)[1], dark.colors.canvas) >= 4.5);
 });
 
 test("loadTheme_customDarkThemeWithDeepBlueAccent_picksTheCanvasAndReachesFourPointFive", () => {

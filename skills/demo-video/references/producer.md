@@ -11,10 +11,10 @@ command's one-line summary for your status line. `D` = `node "<skill dir>/script
 
 ## Pipeline, in order
 
-1. `D narrate . [--voice <Name>]` (add `--voice` only for the voice chosen at gate 1)
+1. `D narrate . [--voice <Name>]` (add `--voice` only for the voice chosen at gate 1). Kokoro voices locally and free. A brief with no `voice.engine` (made before Kokoro) follows the machine default: it is switched to Kokoro Heart, written to the brief, and narrate prints a note (re-voices every scene). ElevenLabs only with `--engine elevenlabs` (paid: ask first)
 2. `D sfx .`
 3. `D build .`, then the fixes below, if any
-4. `D music .` (after the fixes: the bed is made for the final length)
+4. `D music .` (copies the mood's track from the library; only an empty slot is generated, the one credit spend; a custom bed is kept)
 5. `D check .`
 
 The pipeline never renders. Rendering is the render step in SKILL.md, after the layout review and
@@ -48,7 +48,8 @@ the final look: a render made before them goes stale with their first fix.
   first, and if the user declines, render as is and say check fails only on that rule).
 - Layout failures from check (overflow, overlap): the layout review, qa.md.
 - Content changes (wording, claims, scene order or scene types): writer.md, Revision.
-- ElevenLabs errors:
+- Kokoro errors: `D setup` prints what is missing (python package, model files). A failed run saves nothing: rerun the same command (free).
+- ElevenLabs errors (only for music, SFX, or `--engine elevenlabs`):
   - 401: ask the user for the key and rewrite `~/.config/demo-video/.env`.
   - 402: tell the user the credits are out.
   - 403 on music: offer `D music . --file <mp3>` or music off.
@@ -62,14 +63,15 @@ Never work around a failing line: fix its cause at that step.
 | Request | Run |
 |---|---|
 | faster or slower voice | `D narrate . --speed 1.1` (0.95 to 1.15), `D build .`, `D check .` |
-| another voice | `D narrate . --voice River`, `D build .`, `D check .` |
-| different music | `D music . --prompt "..."` or `D music . --file x.mp3` |
+| another voice | `D narrate . --voice Michael` (names: `D voices`), `D build .`, `D check .` |
+| ElevenLabs instead of Kokoro (paid: ask first), or back | `D narrate . --engine elevenlabs` / `--engine kokoro` (re-voices all scenes), `D build .`, `D check .` |
+| different music | `D music . --mood <slot>`: `calm-tech` (balanced, calm-technical), `story-warm` (light, story-driven), `launch-bright` (playful, energetic-launch), `focus-serious` (serious, critical, minimal-documentary), `minimal-ambient` (the alternate); `D music-library` lists them. The first `D music .` picks one from tone and preset and keeps it in brief `music_mood`; later a tone or preset change does not move it, only `--mood` does. One-off: `--prompt "..."` or `--file x.mp3`, kept by later plain runs (brief `music_custom`) until `--mood`; a bare `--prompt` uses brief `music_prompt` (the theme's, which does not loop cleanly). `--adopt <slot>` seeds an empty slot from the project's bed, warns if it is under 360 s, and leaves the brief alone. A slot you dislike: delete `~/.cache/demo-video/music/<slot>.mp3` and run `D music .` to regenerate it (the one credit spend). The render loops a bed shorter than the video with a crossfade |
 | music louder or quieter | brief.json `music_gain_db` (+3 or -3) |
 | no captions, music or SFX | brief.json `captions` / `music` / `sfx`: false, `D build .`, `D check .` |
 | another transition | scenes.json scene `transition`: push, zoom, fade or cut; `D build .`, `D check .` |
-| another style: calmer, livelier, captions, background, chrome, pacing | brief.json `direction` (scenes.md, Creative direction); `D build .`, `D check .`; after a pacing change also `D music .` |
-| another theme | `D theme . --use labos` (or neutral, midnight), `D build .`, `D check .` |
-| a custom brand | `D theme-from-site <url>` prints a guess at colors and fonts. Write `theme/theme.json`: name, mode (light or dark), colors {canvas, surface, ink, muted, light, accent, accent2, danger; each hex `#RGB` or `#RRGGBB`}, fonts {display, body, mono} (Google Fonts families), logo (a file in theme/, SVG preferred; omit it for a text-only lockup), music_prompt. Copy the logo into `theme/`, run `D theme .`, then `D build .`, `D check .`. Text colors are darkened to pass WCAG AA, so brand colors work as given. |
+| another style: calmer, livelier, captions, background, chrome, pacing | brief.json `direction` (scenes.md, Creative direction); `D build .`, `D check .` |
+| another theme | `D theme . --use labos` (or labos-dark, neutral, midnight), `D build .`, `D check .` |
+| a custom brand | `D theme-from-site <url>` prints a guess at colors and fonts. Write `theme/theme.json`: name, mode (light or dark), colors {canvas, surface, ink, muted, light, accent, accent2, danger; each hex `#RGB` or `#RRGGBB`}, fonts {display, body, mono} (Google Fonts families), logo (a file in theme/, SVG preferred; omit it for a text-only lockup), music_prompt (used only by a bare `--prompt`). Copy the logo into `theme/`, run `D theme .`, then `D build .`, `D check .`. Text colors are darkened to pass WCAG AA, so brand colors work as given. |
 
 Then the render step: `D render .`, or `D render . --mix-only` after an audio-only change (music
 or its level): it reuses the last picture and redoes only the audio mix.

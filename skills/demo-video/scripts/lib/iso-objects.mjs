@@ -1,9 +1,12 @@
-// Object library of the 3D kit: what stands on a stop's platform. Each kind is a small function of a context
-// { k, pal, box, billboard, cx, cy, seed, name } (platform coordinates: origin at the footprint's top-left, z up from
-// the platform surface, cx and cy the footprint's center) and returns { html, height, act? }. `height` is how
-// tall the object stands (the stop's label floats above it); `act(t)` lists the timeline lines the object plays
-// when its stop lands (a printed sheet sliding out, crates moving along the belt).
+// Object library of the 3D kit: what stands on a platform or is placed on a stage. Each kind is a small function of a
+// context { k, pal, box, sprite, cx, cy, seed, spec, id, name } (origin at the footprint's top-left, z up from the
+// surface, cx and cy the footprint's center; `spec` is what the object was declared with) and returns
+// { html, height, act?, actions?, anchors? }. `height` is how tall the object stands (a label floats above it);
+// `act(t)` lists the timeline lines the object plays when its stop lands (a printed sheet sliding out, crates moving
+// along the belt). The kinds that act on cue (iso-actors: lock, gear, layers, scanner, crash, key, token, clock)
+// return `actions`, which the scene calls by name.
 import { seededRandom } from "./direction.mjs";
+import { ACTORS } from "./iso-actors.mjs";
 import { rgba } from "./theme.mjs";
 
 const bar = (style) => `<i style="position:absolute;${style}"></i>`;
@@ -70,10 +73,10 @@ function shield({ k, box, pal, cx, cy }) {
 }
 
 // A cloud floating above a shadow: a billboard, so it always faces the camera.
-function cloud({ k, pal, billboard, cx, cy }) {
+function cloud({ k, pal, sprite, cx, cy }) {
   const shadow = `<div class="${k.p("f")}" style="left:${cx - 110}px;top:${cy - 60}px;width:220px;height:120px;border-radius:50%;background:${rgba(pal.edge, 0.22)}"></div>`;
   const icon = k.icon("cloud", { size: 220, color: pal.edgeText, style: `fill:${rgba(pal.canvas, 0.92)}` });
-  const sky = `<div class="${k.p("lbl")}" style="left:${cx}px;top:${cy}px;transform:${billboard(170)}"><div style="position:absolute;left:-110px;top:-110px">${icon}</div></div>`;
+  const sky = sprite({ x: cx, y: cy, z: 170, html: `<div style="position:absolute;left:-110px;top:-110px">${icon}</div>` });
   return { html: shadow + sky, height: 260 };
 }
 
@@ -90,7 +93,7 @@ function container({ box, pal, cx, cy }) {
   return { html: box({ x: cx - 140, y: cy - 65, w: 280, d: 130, h: 120, color: pal.crate, glow: pal.glow(0.35), face: ribs }), height: 120 };
 }
 
-const KINDS = { users, server, database, queue, printer, document: pages, shield, cloud, phone, container };
+const KINDS = { users, server, database, queue, printer, document: pages, shield, cloud, phone, container, ...ACTORS };
 
 export const OBJECT_KINDS = Object.keys(KINDS);
 

@@ -3,7 +3,7 @@
 // establishing shot). The 3D look is a house-style exception: use it for spatial or flow content (see visuals.md).
 // data: {
 //   stops: [{ title, kind, at?, note?, panel? }]   2-6; kind: users | server | database | queue | printer |
-//                                                  document | shield | cloud | phone | container
+//                                                  document | shield | cloud | phone | container (or any iso-objects kind)
 //   pull_back?: false, pull_back_at?                with 3 or more stops the camera pulls back to the whole map after
 //                                                  the last one; false keeps it on the last stop, pull_back_at is a cue
 // }

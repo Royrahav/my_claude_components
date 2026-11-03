@@ -7,6 +7,9 @@ import { DEFAULT_DIRECTION, TRANSITION_SECONDS, seededRandom } from "./direction
 import { driftMove } from "./drift.mjs";
 import { backdropParts, chapterIntroParts } from "./fillers.mjs";
 import { isSummary } from "./house-style.mjs";
+import { createStage, isoPalette } from "./iso-kit.mjs";
+import { createCamera } from "./iso-motion.mjs";
+import { OBJECT_KINDS } from "./iso-objects.mjs";
 import { rgba, themeVars } from "./theme.mjs";
 
 export const ICONS = {
@@ -116,6 +119,13 @@ export function createScene({ id, theme, fontsCss, brief, scene, duration, direc
   const k = {
     id, p, css, html, js, sfx, duration, theme, brief, scene, direction,
     esc,
+    // True once the scene builds a 3D stage (any template): the house-style rules count it as a 3D scene.
+    is3d: false,
+    // Notes a template wants printed with the build (the 3D kit reports a move it had to push later).
+    warnings: [],
+    // The 3D kit bound to this scene (custom-scene.md, 3D signature scene recipe): `stage` builds the one stage of the
+    // scene, `camera` moves it, `palette` gives the world's colors and `kinds` lists the object library.
+    iso: { stage: (options) => createStage(k, options), camera: (stage) => stage.camera ?? createCamera(k, stage), palette: () => isoPalette(theme), kinds: OBJECT_KINDS },
     // Records that element `s` shows from `t`, without tweening it: for a reveal the template animates itself
     // (the 3D kit scales and drops its elements; fading a preserve-3d element would flatten it).
     revealAt: (s, t) => appearAt(s, t),

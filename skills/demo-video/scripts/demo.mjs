@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 // demo-video CLI. Every command prints a few compact lines (they are read by the agent).
 //   node demo.mjs <command> [project-dir] [options]
-// Commands: setup | init | theme | theme-from-site | voices | samples | plan | narrate | sfx | music |
+// Commands: setup | init | theme | theme-from-site | voices | samples | plan | narrate | sfx | music | music-library |
 //           build | check | render | script | status | history
 
 import { cpSync, existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { CONFIG_PATH, HF, LEAD, SKILL_DIR, apiKey, clock, config, defaultBrief, ensureDir, flag, formatDurations, hf, loadProject, onlySet, projectFiles, r2, readJson, run, writeJson } from "./lib/util.mjs";
 import { brandFromSite, fontCss, installFonts, loadTheme } from "./lib/theme.mjs";
-import { STOCK_VOICES, ensureSfx, measuredWps, music, narrate, rateFor, samples, voiceById } from "./lib/voice.mjs";
+import { chooseVoice, defaultVoice, engineOf, ensureSfx, impliedEngine, machineEngine, measuredWps, music, narrate, rateFor, sampleVoiceNames, samples, voicesOf } from "./lib/voice.mjs";
+import { kokoroSetupLines } from "./lib/kokoro.mjs";
 import { buildTimeline, holdFor, makeCue, silentSeconds } from "./lib/timeline.mjs";
 import { chromeStart, createScene, wrap } from "./lib/kit.mjs";
 import { planChapterIntro, startsChapter } from "./lib/fillers.mjs";
@@ -20,11 +21,13 @@ import { mainLayers, writeLayerFiles } from "./lib/layers.mjs";
 import { checkOutcome, contactSheet, lintAndCheck } from "./lib/check.mjs";
 import { render } from "./lib/render.mjs";
 import { USER_AGENTS_DIR, cursorHome, cursorSkillDiscovery, hostsFor, installAgents, installCursorAgents } from "./lib/agents.mjs";
-import { historyPaths, historyReport, recordOf, recordRender, safeHistoryWarnings } from "./lib/history.mjs";
-import { houseStyleWarnings } from "./lib/house-style.mjs";
+import { adoptBed, describeSlot, listLibrary, planMusic, shortBedWarning, useMood } from "./lib/music.mjs";
+import { historyPaths, historyReport, lastMusicMood, readHistory, recordOf, recordRender, safeHistoryWarnings } from "./lib/history.mjs";
+import { houseStyleWarnings, missingQuestionWarnings } from "./lib/house-style.mjs";
 import { describeDirection, enteringTransitions, resolveDirection } from "./lib/direction.mjs";
 import { templateFor } from "./lib/variants.mjs";
-import { templatePath, templateSource } from "./lib/template-source.mjs";
+import { previousThreeD, readThreeD, threeDFlags, threeDPath } from "./lib/scene3d.mjs";
+import { templateFacts, templatePath, templateSource } from "./lib/template-source.mjs";
 
 const argv = process.argv.slice(2);
 const cmd = argv[0];
@@ -41,10 +44,13 @@ async function setup() {
   say(`hyperframes ${HF}: ${b.code === 0 ? "ok, render browser ready" : `browser setup FAILED: ${(b.out + b.err).trim().split("\n").slice(-2).join(" ")}`}`);
   const cfg = config();
   const dir = flag(argv, "projects-dir");
-  if (dir || !existsSync(CONFIG_PATH)) writeJson(CONFIG_PATH, { ...cfg, projects_dir: dir ? resolve(dir) : cfg.projects_dir });
-  say(`projects dir: ${config().projects_dir}`);
+  const tts = flag(argv, "tts");
+  if (tts) engineOf({ engine: tts }); // refuse an unknown engine before it is saved
+  if (dir || tts || !existsSync(CONFIG_PATH)) writeJson(CONFIG_PATH, { ...cfg, projects_dir: dir ? resolve(dir) : cfg.projects_dir, ...(tts && { tts }) });
+  say(`projects dir: ${config().projects_dir}`, `voice engine for new projects: ${machineEngine()} (change with setup --tts elevenlabs|kokoro)`);
+  say(...kokoroSetupLines());
   const key = apiKey();
-  say(key ? "ElevenLabs key: found" : `ElevenLabs key: MISSING (ask the user for it, then write ELEVENLABS_API_KEY=... to ${join(CONFIG_PATH, "..", ".env")})`);
+  say(key ? "ElevenLabs key: found (music, sound effects, ElevenLabs voices)" : `ElevenLabs key: not set (optional: only for generating music or sound effects, or voicing with ElevenLabs; then write ELEVENLABS_API_KEY=... to ${join(CONFIG_PATH, "..", ".env")})`);
   const cursorDir = cursorHome();
   const hosts = hostsFor(flag(argv, "host"), { cursorExists: existsSync(cursorDir) });
   if (hosts.claude) setupClaudeAgents();
@@ -66,7 +72,7 @@ function setupCursorAgents(cursorDir) {
   say(`cursor agents: ${agents.installed.length} installed in ${join(cursorDir, "agents")} (model ${model})`, cursorSkillDiscovery({ cursorDir }));
 }
 
-// Copies a built-in theme (labos | neutral | midnight) or a theme folder / theme.json into <project>/theme.
+// Copies a built-in theme (labos | labos-dark | neutral | midnight) or a theme folder / theme.json into <project>/theme.
 function useTheme(dir, themeArg) {
   const src = existsSync(themeArg) ? resolve(themeArg, themeArg.endsWith(".json") ? ".." : ".") : join(SKILL_DIR, "assets", "themes", themeArg);
   if (!existsSync(join(src, "theme.json"))) throw new Error(`unknown theme ${themeArg}; available: ${readdirSync(join(SKILL_DIR, "assets", "themes")).join(", ")}`);
@@ -92,7 +98,7 @@ async function init() {
   const fonts = await installFonts(dir, th);
   const name = basename(dir);
   const product = flag(argv, "product", name);
-  if (!existsSync(f.brief)) writeJson(f.brief, defaultBrief({ name, product, musicPrompt: th.music_prompt }));
+  if (!existsSync(f.brief)) writeJson(f.brief, defaultBrief({ name, product, musicPrompt: th.music_prompt, voice: defaultVoice(machineEngine()) }));
   if (!existsSync(f.scenes)) cpSync(join(SKILL_DIR, "assets", "scenes.example.json"), f.scenes);
   if (!existsSync(f.pron)) cpSync(join(SKILL_DIR, "assets", "pronunciations.default.json"), f.pron);
   if (!existsSync(join(dir, ".env"))) writeFileSync(join(dir, ".env"), "# ELEVENLABS_API_KEY=  (optional here; the machine-level key in ~/.config/demo-video/.env is used otherwise)\n");
@@ -125,7 +131,7 @@ function plan() {
     const sec = (s.duration ?? (s.say ? LEAD + w / rate + holdFor(s, pacing) : silentSeconds(s)));
     total += sec;
     words += w;
-    return `${s.id} ${s.type} ${w}w ~${sec.toFixed(1)}s`;
+    return `${s.id} ${s.type} ${w}w ~${sec.toFixed(1)}s${s.question ? ` Q "${s.question}"` : ""}`;
   });
   const target = Number(flag(argv, "target", brief.length_s));
   const overhead = total - words / rate;
@@ -135,6 +141,7 @@ function plan() {
     rows.join(" | "),
     `total ~${clock(total)} (${words} words at ${rate.toFixed(2)} w/s), target ${clock(target)}, word budget at the current speed ~${Math.round((target - overhead) * rate)}`,
     `speed to hit target: ${needSpeed.toFixed(2)} (now ${speed.toFixed(2)}; set with narrate --speed)`,
+    ...missingQuestionWarnings(scenes).map((w) => `warn: ${w}`),
   );
 }
 
@@ -148,14 +155,17 @@ async function build() {
   const fontsCss = fontCss(root);
   const { tl, warnings } = buildTimeline(f, scenes, { pacing: direction.pacing });
   const sources = scenes.map((s) => templateSource(root, s.type));
+  const templates = templateFacts(root, scenes, sources);
   const sfxMapPath = join(root, ".demo", "sfx.json");
   const sceneSfx = only && existsSync(sfxMapPath) ? readJson(sfxMapPath) : {};
+  const threeD = previousThreeD(root, only); // scene id -> built a 3D stage; kept across --only builds
   ensureDir(f.comps);
   const screenWarnings = [];
   for (const [i, s] of scenes.entries()) {
     if (only && !only.has(s.id)) continue;
     const stl = tl.scenes[i];
     if (sources[i] === "custom") {
+      delete threeD[s.id];
       const file = join(f.comps, `${s.id}.html`);
       if (!existsSync(file)) warnings.push(`${s.id}: custom scene file compositions/${s.id}.html missing`);
       else writeFileSync(file, readFileSync(file, "utf8").replace(/(data-composition-id="[^"]+" data-start="0" data-duration=")[\d.]+/, `$1${stl.duration}`).replace(/(class="clip[^"]*" data-start="0" data-duration=")[\d.]+/, `$1${stl.duration}`));
@@ -170,8 +180,11 @@ async function build() {
     writeFileSync(join(f.comps, `${s.id}.html`), wrap(k, { fontsCss, chrome: res.chrome !== false, eyebrow: brief.eyebrow ?? brief.product, entrance: transitions[i], intro }));
     screenWarnings.push(...emptyScreenWarnings({ id: s.id, scene: s, intervals: k.visibleIntervals(), duration: stl.duration }));
     sceneSfx[s.id] = k.sfx;
+    threeD[s.id] = k.is3d;
+    warnings.push(...k.warnings.map((message) => `${s.id}: ${message}`));
   }
   writeJson(sfxMapPath, sceneSfx);
+  writeJson(threeDPath(root), threeD);
   const caps = brief.captions !== false ? writeCaptions(root, tl, theme, fontsCss, direction.captions) : 0;
   const sfxOn = brief.sfx !== false && existsSync(join(f.sfx, "pop.mp3"));
   if (brief.sfx !== false && !sfxOn) warnings.push("SFX files missing: run `sfx` (or set brief.sfx false)");
@@ -181,8 +194,8 @@ async function build() {
   const { sfx } = writeIndex(root, tl, scenes, sceneSfx, { canvas: theme.colors.canvas, captions: brief.captions !== false, sfxOn, transitions, layers });
   const dashes = JSON.stringify(scenes).match(/[\u2013\u2014]/g);
   if (dashes) warnings.push(`${dashes.length} em/en dash characters in scenes.json (house style: plain hyphens)`);
-  warnings.push(...houseStyleWarnings(scenes, { sources, transitions, durations: tl.scenes.map((s) => s.duration) }));
-  warnings.push(...safeHistoryWarnings(recordOf({ root, brief, scenes, sources, direction }), historyPaths().history));
+  warnings.push(...houseStyleWarnings(scenes, { sources, transitions, durations: tl.scenes.map((s) => s.duration), allowTerms: brief.allow_terms, threeD: threeDFlags(scenes, threeD), templates }));
+  warnings.push(...safeHistoryWarnings(recordOf({ root, brief, scenes, sources, direction, threeD: threeDFlags(scenes, threeD), templates }), historyPaths().history));
   warnings.push(...screenWarnings); // last: only the first 20 warnings print, and the house-style ones matter more
   const directionLine = brief.direction ? [`direction: ${describeDirection(direction)}`] : [];
   say(formatDurations(tl, only), `total ${clock(tl.total)} (${tl.total}s), captions ${caps} groups, sfx ${sfx}`, ...directionLine, ...warnings.slice(0, 20).map((w) => `warn: ${w}`));
@@ -203,18 +216,58 @@ function recordInHistory(root) {
   try {
     const { brief, scenes } = loadProject(root);
     const sources = scenes.map((s) => templateSource(root, s.type));
-    recordRender(recordOf({ root, brief, scenes, sources, direction: resolveDirection(brief.direction) }), historyPaths().history);
+    recordRender(recordOf({ root, brief, scenes, sources, direction: resolveDirection(brief.direction), threeD: threeDFlags(scenes, readThreeD(root)), templates: templateFacts(root, scenes, sources) }), historyPaths().history);
     return "history: recorded";
   } catch (e) {
     return `history: not recorded (${e.message})`;
   }
 }
 
+// The project's music bed: the mood's library track (generated into the library only when its slot is
+// empty), or a one-off --prompt / --file that stays in this project and survives a plain rerun (music_custom).
+// --adopt seeds an empty slot from the bed and leaves the brief alone.
+async function musicBed() {
+  const root = project();
+  const { f, brief } = loadProject(root);
+  const adopt = flag(argv, "adopt");
+  if (adopt) return say(`library: ${adopt} seeded (${adoptBed(adopt, f.music)})`, shortBedWarning(f.music));
+  const file = flag(argv, "file");
+  const prompt = flag(argv, "prompt");
+  const choice = planMusic(brief, {
+    asked: flag(argv, "mood"),
+    custom: Boolean(file || prompt),
+    customBedPresent: existsSync(f.music),
+    lastMood: lastMusicMood(readHistory(historyPaths().history), root),
+  });
+  saveBrief(f, brief, choice.brief);
+  if (choice.keepBed) return say(`music bed: ${f.music} (kept: a custom bed; use --mood <slot> to switch to the library)`);
+  if (file || prompt) return say(file ? copyBed(f, file) : await customBed(root, f, brief, prompt));
+  const { bed, generated } = await useMood(root, choice.mood);
+  return say(`music bed: ${bed} (mood ${choice.mood}, ${generated ? "generated into the library" : "from the library"})`);
+}
+
+function copyBed(f, file) {
+  ensureDir(dirname(f.music));
+  cpSync(resolve(file), f.music);
+  return `music bed: ${f.music} (user file)`;
+}
+
+async function customBed(root, f, brief, prompt) {
+  const total = existsSync(f.timeline) ? readJson(f.timeline).total : brief.length_s;
+  const out = await music(root, prompt === true ? brief.music_prompt : prompt, total + 8);
+  return `music bed: ${out} (custom prompt, this project only)`;
+}
+
+// brief.music_mood is the mood the history records; a custom bed has none and sets music_custom instead.
+function saveBrief(f, before, after) {
+  if (JSON.stringify(before) !== JSON.stringify(after)) writeJson(f.brief, after);
+}
+
 function script() {
   const root = project();
   const { brief, scenes } = loadProject(root);
   const words = scenes.reduce((n, s) => n + (s.say ?? "").split(/\s+/).filter(Boolean).length, 0);
-  const md = [`# ${brief.product} - narration`, "", `${scenes.length} scenes, ${words} words, about ${clock(words / rateFor(brief))} of speech.`, "", ...scenes.flatMap((s, i) => [`## ${i + 1}. ${s.chapter ?? s.type} (${s.id}, ${s.type})`, "", s.say ?? "(silent)", ""])].join("\n");
+  const md = [`# ${brief.product} - narration`, "", `${scenes.length} scenes, ${words} words, about ${clock(words / rateFor(brief))} of speech.`, "", ...scenes.flatMap((s, i) => [`## ${i + 1}. ${s.chapter ?? s.type} (${s.id}, ${s.type})`, "", ...(s.question ? [`Question: ${s.question}`, ""] : []), s.say ?? "(silent)", ""])].join("\n");
   writeFileSync(join(root, "SCRIPT.md"), md);
   say(`SCRIPT.md written: ${scenes.length} scenes, ${words} words`);
 }
@@ -229,54 +282,47 @@ async function main() {
       return themeCmd();
     case "theme-from-site":
       return say(JSON.stringify(await brandFromSite(positional), null, 1));
-    case "voices":
-      return say(STOCK_VOICES.map((v) => `${v.name} ${v.id} - ${v.desc}`).join("\n"));
+    case "voices": {
+      const engine = engineOf({ engine: flag(argv, "engine", machineEngine()) });
+      return say(`engine ${engine}`, voicesOf(engine).map((v) => `${v.name} ${v.id} - ${v.desc}`).join("\n"));
+    }
     case "samples": {
       const root = project();
-      const { scenes } = loadProject(root);
+      const { brief, scenes } = loadProject(root);
+      const engine = engineOf({ engine: flag(argv, "engine", engineOf(brief.voice)) });
       const text = flag(argv, "text", scenes.find((s) => s.say)?.say);
-      const names = String(flag(argv, "voices", "Matilda,River,Brian,Daniel")).split(",");
-      return say(...(await samples(root, text, names)));
+      const names = String(flag(argv, "voices", sampleVoiceNames(engine))).split(",");
+      return say(...(await samples(root, text, names, engine)));
     }
     case "plan":
       return plan();
     case "narrate": {
       const root = project();
       const { brief, scenes } = loadProject(root);
-      const sp = flag(argv, "speed");
-      if (sp) brief.voice.speed = Number(sp);
-      const v = flag(argv, "voice");
-      if (v) {
-        const sv = voiceById(v);
-        brief.voice = { ...brief.voice, id: sv?.id ?? v, name: sv?.name ?? v };
+      const asked = flag(argv, "engine");
+      const implied = asked ? undefined : impliedEngine(brief.voice);
+      const voice = chooseVoice(brief.voice, { engine: asked ?? implied, voice: flag(argv, "voice"), speed: flag(argv, "speed") });
+      if (JSON.stringify(voice) !== JSON.stringify(brief.voice)) {
+        brief.voice = voice;
+        writeJson(projectFiles(root).brief, brief);
       }
-      if (sp || v) writeJson(projectFiles(root).brief, brief);
       const res = await narrate(root, scenes, brief, onlySet(flag(argv, "only")), argv.includes("--force"));
       const wps = measuredWps(root, scenes);
       if (wps) {
         brief.voice.measured_wps = r2(wps / (brief.voice.speed ?? 1));
         writeJson(projectFiles(root).brief, brief);
       }
-      return say(res.join(" | "), `measured ${wps ? wps.toFixed(2) : "?"} words/s; next: build`);
+      const notice = implied ? [`note: the brief had no voice.engine, so the machine default applies: ${implied} (voice ${brief.voice.name}); \`--engine elevenlabs\` keeps ElevenLabs`] : [];
+      return say(...notice, res.join(" | "), `measured ${wps ? wps.toFixed(2) : "?"} words/s; next: build`);
     }
     case "sfx": {
       const made = await ensureSfx(project());
       return say(`sfx ready${made.length ? ` (generated ${made.join(", ")})` : " (cached)"}`);
     }
-    case "music": {
-      const root = project();
-      const { brief } = loadProject(root);
-      const file = flag(argv, "file");
-      const f = projectFiles(root);
-      if (file) {
-        ensureDir(join(root, "assets", "music"));
-        cpSync(resolve(file), f.music);
-        return say(`music bed: ${f.music} (user file)`);
-      }
-      const tlTotal = existsSync(f.timeline) ? readJson(f.timeline).total : brief.length_s;
-      const out = await music(root, flag(argv, "prompt", brief.music_prompt), tlTotal + 8);
-      return say(`music bed: ${out}`);
-    }
+    case "music":
+      return musicBed();
+    case "music-library":
+      return say(...listLibrary().map(describeSlot));
     case "build":
       return build();
     case "check": {
@@ -302,7 +348,7 @@ async function main() {
     case "status":
       return status();
     default:
-      say("usage: node demo.mjs <setup|init|theme|theme-from-site|voices|samples|plan|narrate|sfx|music|build|check|render|script|status|history> [project] [--options]");
+      say("usage: node demo.mjs <setup|init|theme|theme-from-site|voices|samples|plan|narrate|sfx|music|music-library|build|check|render|script|status|history> [project] [--options]");
   }
 }
 

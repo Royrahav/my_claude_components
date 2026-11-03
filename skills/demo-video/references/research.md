@@ -36,8 +36,11 @@ Reading is enough:
 - Read diffs, not whole files. Skip generated files, vendored code and test data.
 - Describe behavior in plain words. Never paste code, except exact names the video will show
   (an endpoint, a config key, a command).
-- Look for proof: tests (count or coverage), benchmarks, load tests, real-world trials. Note the
+- Look for proof the product shows: measured behavior, benchmark numbers, real-world trials. Note the
   conditions of each and what it does not prove.
+- Keep how it was built out of the facts: test counts and coverage, CI status, code review, QA,
+  files changed, CL, PR and ticket numbers, sprint, shelving, planned load tests. Record them
+  under `Process (not for the video)`; the writer never uses that section.
 - Look for real-life use: ticket user stories, support cases, comments on who hit the problem and
   when. The video's closing summary builds its examples from these.
 
@@ -72,15 +75,17 @@ Config keys and defaults, where they are set, rollout and rollback.
 Who uses the feature, when, and concrete situations from the sources (ticket user stories,
 support cases). 3 to 6 bullets. Mark a scenario that is inferred rather than sourced "(illustrative)".
 ## Proof
-Exact numbers with units, conditions and the caveat.
+Product evidence only: exact numbers with units, conditions and the caveat.
 ## Availability
-Version, scope, what is not included.
+Product status in product words: shipped, in the next version, or off by default and how to enable it; scope, what is not included.
 ## Must not claim
 Things that sound true but are not: planned, optional, unmeasured, or a different scope.
 ## Names and pronunciation
 Product names, acronyms and how to say them, terms a non-engineer needs glossed.
 ## Open questions
 Only what the user must decide or confirm: version, naming, emphasis, conflicts found.
+## Process (not for the video)
+Development-process facts the writer must not use (see above). Omit when there are none.
 ```
 
 Reply to the caller with one line: the FACTS.md path, the number of facts, the number of angles, `fits` or `over by <n> ideas`, and the number of open questions.

@@ -53,7 +53,7 @@ without `direction`, the video keeps the original look (the first value of each 
 ```
 
 - `preset`: a starting point from the table below. Knobs set beside it override it.
-- `mood` (text): the feel. Write `music_prompt` from it.
+- `mood` (text): the feel. Pick `music_mood` to match.
 - `motif` (text): the visual idea tied to the content. The signature scene builds on it.
 - `pacing`: `measured` (the default holds), `brisk` (about 0.8x) or `relaxed` (about 1.2x). A
   scene's own `hold` is kept.
@@ -115,6 +115,8 @@ Scene fields:
   `custom` (see custom-scene.md).
 - `say`: the narration. Leave it empty for a silent scene and set `duration` instead.
 - `data`: the template's fields. Every field marked `?` is optional.
+- `question?`: the viewer question this scene answers; never shown or voiced (writer.md, Story order).
+  `plan` warns when a scene but title, beat or close lacks one.
 - `chapter?`: a small tag at the top right ("The problem"). Title and close scenes don't show it,
   and neither does `chrome: "none"`.
 - `id?`: defaults to s01, s02 ... by position. `--only` takes ids.
@@ -345,10 +347,10 @@ Strategies (pick one, and examples may only apply facts from FACTS.md):
 
 ### close: the final scene (always last)
 Default: logo, title, 1-3 tagline phrases (`underline: false` drops the last one's sweep).
-`title`, `tagline` [string | {text, at}], `ref?` (a small line, such as the ticket), `logo?` (false hides).
+`title`, `tagline` [string | {text, at}], `ref?` (a small line in product words, such as the version; never a ticket or CL number), `logo?` (false hides).
 ```json
 { "type": "close", "say": "labOS Print Gateway. One service. PDF or not. No spooler.",
-  "data": { "title": "Print Gateway", "tagline": [{ "text": "One service.", "at": "One" }, { "text": "PDF or not.", "at": "PDF" }, { "text": "No spooler.", "at": "No" }], "ref": "Ref: LAB-16894" } }
+  "data": { "title": "Print Gateway", "tagline": [{ "text": "One service.", "at": "One" }, { "text": "PDF or not.", "at": "PDF" }, { "text": "No spooler.", "at": "No" }], "ref": "Available in the next version" } }
 ```
 Variants (small logo, no title repeat; each takes `ref?`, `logo?`):
 - `punchline`: `line` (one sentence, revealed word by word), `sub?`, `at?`.

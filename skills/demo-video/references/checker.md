@@ -13,7 +13,10 @@ a revision changed.
    - `unsupported`: not in FACTS.md;
    - `overstated`: stronger than its source (planned said as shipped, optional said as required,
      a measurement without its caveat or conditions, "all" for "some");
-   - `wrong`: contradicts FACTS.md, or is on its "Must not claim" list.
+   - `wrong`: contradicts FACTS.md, or is on its "Must not claim" list;
+   - `process`: a development-process detail, not product: how the feature was built, reviewed,
+     tested or delivered (tests, CI, code review, QA, CL, PR, ticket, sprint), or a fact from
+     FACTS.md "Process (not for the video)".
 4. Summary examples (the `recap` scene, or the scene marked `"summary": true`) may illustrate,
    but must add no capability, number, customer, version or behavior beyond FACTS.md. A hypothetical phrased as an example ("For
    example, ...") that only applies facts from FACTS.md passes. Flag one that states an invented
@@ -29,10 +32,23 @@ a revision changed.
    - `open loop`: a question or promise raised in a scene that nothing later pays off.
    On a revision, check the pairs around the changed scenes.
 
+## Cold read pass
+
+7. Read all the narration in order once, as a first-time viewer of the stated audience. Write what
+   you understood in the report, at most 3 lines. Flag:
+   - `unclear`: a newcomer is lost (a term not defined in plain words, a jump, two ideas in one
+     scene, code shown before the idea behind it);
+   - `early detail`: internals or wiring shown before the purpose and the picture (the spine, writer.md, Story order, decides what is early).
+8. Check each scene's `question`: the scene answers it, and it follows from the previous scene.
+   Flag `question`: the scene does not answer it, or the question does not follow.
+
 ## Report
 
-Problems only, at most 20 lines, one per line:
+The `understood:` line, then problems only, at most 20 lines, one per line:
 `sNN: "<text>" - unsupported | overstated | wrong: <why> [source]`
 `sNN-sMM: order | early term | open loop: <why>`
+`sNN: "<text>" - process: development-process detail, not product`
+`sNN: unclear | early detail | question: <why>`
 
-If there are none, reply `no issues`. Nothing else.
+`understood: <what a newcomer took away, at most 3 lines>` comes first. If there are no problems, reply
+`no issues` after it. Nothing else.

@@ -18,6 +18,7 @@ import isoMap from "../lib/scenes/iso-map.mjs";
 const THEMES = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "assets", "themes");
 const labos = loadTheme(join(THEMES, "labos", "theme.json"));
 const midnight = loadTheme(join(THEMES, "midnight", "theme.json"));
+const labosDark = loadTheme(join(THEMES, "labos-dark", "theme.json"));
 const DURATION = 24;
 
 const stop = (title, kind, extra = {}) => ({ title, kind, ...extra });
@@ -42,7 +43,7 @@ test("isoJourney_unknownKind_stopsTheBuildNamingTheValidKinds", () => {
 });
 
 test("objectKinds_everyKind_buildsOnBothThemes", () => {
-  for (const theme of [labos, midnight])
+  for (const theme of [labos, midnight, labosDark])
     for (const kind of OBJECT_KINDS) {
       const k = build(isoJourney, { stops: [stop("A", kind, { at: 1 }), stop("B", kind, { at: 5 })] }, { theme });
 
@@ -133,7 +134,7 @@ test("iso_preserve3dElements_areNeverFaded", () => {
 });
 
 test("isoPalette_labelText_passesAAOnBothThemes", () => {
-  for (const theme of [labos, midnight]) {
+  for (const theme of [labos, midnight, labosDark]) {
     const pal = isoPalette(theme);
 
     assert.ok(contrast(pal.ink, pal.pillFill) >= 4.5, theme.name);

@@ -15,7 +15,7 @@ leaves with the close. Without `chapter` labels build warns and draws nothing. I
 
 A single layer behind every scene (a depth grid, drifting orbs and motes), so the video reads as one
 place. The camera glides to a new zone of it at each scene boundary, and each scene's own background
-turns transparent over it. It follows the theme (light `labos`, dark `midnight`) and fades out in the
+turns transparent over it. It follows the theme (light `labos`, dark `labos-dark` or `midnight`) and fades out in the
 top-right corner and the bottom strip, where the chapter tag, the close ref and the captions sit.
 A `custom` scene or a project template that paints a full-frame background hides it: leave the frame
 transparent.
@@ -66,9 +66,25 @@ Effects for signature scenes.
 
 ## 3D where it fits
 
-`iso-journey` (a request travelling stop to stop) and `iso-map` (the whole map as the summary) draw an isometric
-world in CSS 3D. Use them only where the content is spatial or a flow; everything else stays 2D. Build warns when 3D
-scenes pass about a third of the counted scenes (close, summary and beats aside).
+A 3D scene draws a world in CSS 3D. Use 3D only where the content is spatial or a flow; everything else stays 2D.
+Any scene that builds a 3D stage counts as 3D, whatever its template. Build warns when 3D scenes pass about a third of
+the counted scenes (close, summary and beats aside).
+
+**Design the 3D for the topic.** When the content is spatial, at least one 3D scene is a project template built with
+`k.iso` for this topic and idea (custom-scene.md, 3D signature scene recipe), not a built-in. The built-ins are
+fallbacks, each at most once per video: `iso-journey` (a request travelling stop to stop) and `iso-map` (the whole
+map as the summary). Each 3D scene of a video uses a different form and camera language, and the video varies from the
+last one (the history records the 3D templates).
+- Forms: a stack of layers, an orbit (a hub and its parts), a path, a grid or city, an exploded view, before and after.
+- Camera: orbit (around a hub), crane (flat to side-on, for layers), dolly (push in or back), focus (slide to a point),
+  follow-and-pull-back (a route; the iso-journey grammar).
+- Objects that act on a word: a lock opening, gears turning, a layer lighting, a beam sweeping, a crate breaking, a key
+  turning, a token travelling, a clock advancing. Pick what the feature is about.
+- Worked examples show the mechanics; design your own form, objects and camera, never an example with only its data
+  changed: `assets/examples/signature-iso-stack.mjs` (a token through layers and back, crane and orbit) and
+  `signature-iso-orbit.mjs` (a hub with satellites, an orbiting camera).
+- Build warns when every 3D scene is a built-in or an unchanged example, when one built-in is used twice, when a project
+  template equals a shipped example, and when the last video used the same 3D template (a renamed copy is caught by source).
 - Colors follow the theme: a dark world on dark themes, a light one on light themes.
 - Cues: each stop rises on its cue with its label. The first stop of a journey, and every stop of a map, stands from
   the start, so the first frame is never empty; their labels and lamps land on the cues. Uncued map stops light 1.2 s

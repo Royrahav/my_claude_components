@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { describeRecord, historyPaths, historyReport, historyWarnings, otherVideos, readHistory, recordOf, recordRender, safeHistoryWarnings } from "../lib/history.mjs";
+import { describeRecord, historyPaths, historyReport, historyWarnings, lastMusicMood, otherVideos, readHistory, recordOf, recordRender, safeHistoryWarnings } from "../lib/history.mjs";
 import { resolveDirection } from "../lib/direction.mjs";
 
 let dir;
@@ -23,8 +23,8 @@ const scenesOf = (...types) => types.map((type, i) => ({ id: `s${i + 1}`, ...(ty
 const GENERIC = ["title", "split", "recap", "close"];
 
 // A record as `render` would write it; `root` defaults to a distinct one per name.
-function recordFor(name, { scenes = scenesOf(...GENERIC), direction = {}, root = `/p/${name}`, sources, date = "2026-10-11" } = {}) {
-  return recordOf({ root, brief: { name, direction }, scenes, sources: sources ?? scenes.map(() => "builtin"), direction: resolveDirection(direction), date });
+function recordFor(name, { scenes = scenesOf(...GENERIC), direction = {}, root = `/p/${name}`, sources, threeD, templates, date = "2026-10-11" } = {}) {
+  return recordOf({ root, brief: { name, direction }, scenes, sources: sources ?? scenes.map(() => "builtin"), direction: resolveDirection(direction), threeD, templates, date });
 }
 
 // historyPaths -----------------------------------------------------------------------------------------
@@ -67,6 +67,8 @@ test("recordOf_fullVideo_capturesEveryField", () => {
     summary: "recap",
     signature: ["split"],
     motif: "rails",
+    music_mood: null,
+    three_d: [],
   });
 });
 
@@ -395,6 +397,54 @@ test("historyWarnings_noPresetOnEither_isQuiet", () => {
   assert.deepEqual(historyWarnings(current, [latest]), []);
 });
 
+// 3D templates ------------------------------------------------------------------------------------------
+
+test("recordOf_threeDScenes_recordsTheirDistinctTypes", () => {
+  const scenes = scenesOf("title", "iso-journey", "orbit-hub", "iso-journey", "recap", "close");
+
+  assert.deepEqual(recordFor("v", { scenes, threeD: [false, true, true, true, false, false] }).three_d, ["iso-journey", "orbit-hub"]);
+  assert.deepEqual(recordFor("v", { scenes }).three_d, ["iso-journey"]);
+});
+
+test("recordRender_threeDTypes_surviveTheFileAndStillTriggerTheSameVideoWarning", () => {
+  const scenes = scenesOf("title", "orbit-hub", "recap", "close");
+  recordRender(recordFor("latest", { scenes, threeD: [false, true, false, false] }), historyFile);
+
+  const [stored] = readHistory(historyFile);
+
+  assert.deepEqual(stored.three_d, ["orbit-hub"]);
+  assert.ok(historyWarnings(recordFor("new", { scenes, threeD: [false, true, false, false] }), [stored]).some((warning) => warning.includes("3D template orbit-hub")));
+});
+
+test("describeRecord_threeDTypes_areShown", () => {
+  const record = recordFor("v", { scenes: scenesOf("title", "iso-journey", "iso-map", "recap", "close") });
+
+  assert.match(describeRecord(record), /3d iso-journey\+iso-map/);
+});
+
+test("historyWarnings_sameThreeDTemplateAsTheMostRecent_namesThatVideo", () => {
+  const latest = recordFor("latest", { scenes: scenesOf("title", "iso-journey", "recap", "close") });
+  const current = recordFor("new", { scenes: scenesOf("title", "split", "iso-journey", "recap", "close") });
+
+  assert.ok(historyWarnings(current, [latest]).includes("house style: the 3D template iso-journey was also used by the most recent video (latest); use another form or camera language"));
+});
+
+test("historyWarnings_differentThreeDTemplateThanTheMostRecent_isQuiet", () => {
+  const latest = recordFor("latest", { scenes: scenesOf("title", "iso-journey", "recap", "close") });
+  const current = recordFor("new", { scenes: scenesOf("title", "split", "scope-stack", "recap", "close"), threeD: [false, false, true, false, false] });
+
+  assert.ok(!historyWarnings(current, [latest]).some((warning) => warning.includes("3D template")));
+});
+
+test("historyWarnings_anEarlierRecordWithoutThreeD_isReadByItsIsoSceneTypes", () => {
+  const { three_d: omitted, ...old } = recordFor("old", { scenes: scenesOf("title", "iso-map", "recap", "close") });
+  const current = recordFor("new", { scenes: scenesOf("title", "iso-map", "split", "close") });
+
+  assert.equal(omitted.length, 1);
+  assert.ok(historyWarnings(current, [old]).some((warning) => warning.includes("3D template iso-map")));
+  assert.ok(!historyWarnings(recordFor("fresh", { scenes: scenesOf("title", "split", "recap", "close") }), [old]).some((warning) => warning.includes("3D template")));
+});
+
 test("historyWarnings_identicalVideo_warnsOnEachRule", () => {
   assert.equal(historyWarnings(sameShape("new"), [sameShape("old")]).length, 3);
 });
@@ -498,4 +548,54 @@ test("historyWarningsAndReport_fileWithOnlyWrongShapeLines_doNotThrow", () => {
   writeFileSync(tasteFile, "");
 
   assert.deepEqual([historyWarnings(sameShape("new"), readHistory(historyFile)), historyReport("/p/new", paths())], [[], ["no earlier videos", "taste notes: none"]]);
+});
+
+// music mood -------------------------------------------------------------------------------------------
+
+test("recordOf_briefWithMusicMood_recordsItAndDescribeRecordShowsIt", () => {
+  const record = recordOf({ root: "/p/a", brief: { name: "a", music_mood: "story-warm" }, scenes: scenesOf(...GENERIC), sources: [], direction: resolveDirection({}) });
+
+  assert.deepEqual([record.music_mood, describeRecord(record).includes("music story-warm")], ["story-warm", true]);
+});
+
+test("recordOf_briefWithoutMusicMood_recordsNull", () => {
+  assert.equal(recordFor("a").music_mood, null);
+});
+
+test("lastMusicMood_newestEarlierVideoWithAMood_winsAndSkipsOthersAndThisProject", () => {
+  const withMood = (name, mood) => ({ ...recordFor(name), music_mood: mood });
+  const records = [withMood("old", "calm-tech"), withMood("new", "focus-serious"), withMood("custom", null), withMood("self", "launch-bright")];
+
+  assert.deepEqual([lastMusicMood(records, "/p/self"), lastMusicMood([withMood("custom", null)], "/p/self")], ["focus-serious", null]);
+});
+
+// project 3D templates are matched by their source -----------------------------------------------------------
+
+const withFingerprint = (type, print) => ({ fingerprint: print, example: null, type });
+const projectVideo = (name, type, print) => {
+  const scenes = scenesOf("title", type, "recap", "close");
+  return recordFor(name, { scenes, threeD: [false, true, false, false], sources: ["builtin", "project", "builtin", "builtin"], templates: scenes.map((scene) => (scene.type === type ? withFingerprint(type, print) : null)) });
+};
+
+test("recordOf_projectThreeDTemplate_isRecordedWithItsSourceFingerprint_andShownWithoutIt", () => {
+  const record = projectVideo("v", "scope-orbit", "deadbeef");
+
+  assert.deepEqual(record.three_d, ["scope-orbit#deadbeef"]);
+  assert.match(describeRecord(record), /3d scope-orbit(?![#\w])/);
+});
+
+test("historyWarnings_renamedCopyOfTheMostRecentVideosThreeDTemplate_isCaughtBySource", () => {
+  const latest = projectVideo("latest", "scope-orbit", "deadbeef");
+  const current = projectVideo("new", "hub-orbit", "deadbeef");
+
+  const warnings = historyWarnings(current, [latest]);
+
+  assert.ok(warnings.includes("house style: the 3D template hub-orbit was also used by the most recent video (latest); use another form or camera language"), warnings.join("|"));
+});
+
+test("historyWarnings_sameTypeNameButDifferentSource_isNotTheSameTemplate", () => {
+  const latest = projectVideo("latest", "scope-orbit", "deadbeef");
+  const current = projectVideo("new", "scope-orbit", "cafef00d");
+
+  assert.ok(!historyWarnings(current, [latest]).some((warning) => warning.includes("3D template")));
 });

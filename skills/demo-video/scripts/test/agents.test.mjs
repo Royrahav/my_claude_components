@@ -3,7 +3,7 @@
 // retired ones; the shipped agents and docs are checked against the contract SKILL.md relies on.
 import { test, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -221,12 +221,11 @@ test("skillDocs_containNoEmOrEnDashes", () => {
 // Raised 2026-11-09 for the why-first rules and the duck review the user asked for; keep ratcheting down.
 const SKILL_MD_MAX_BYTES = 14850;
 const WRITER_PLUS_SCENES_MAX_BYTES = 45550;
-const sizeOf = (...parts) => statSync(join(...parts)).size;
 // Measured with LF line endings, so a CRLF checkout does not change the result.
 const lfSizeOf = (...parts) => Buffer.byteLength(readFileSync(join(...parts), "utf8").replace(/\r\n/g, "\n"));
 
 test("skillDocs_stayWithinByteCeilings", () => {
-  const skillMd = sizeOf(SKILL_ROOT, "SKILL.md");
+  const skillMd = lfSizeOf(SKILL_ROOT, "SKILL.md");
   const writerAndScenes = lfSizeOf(REFERENCES_DIR, "writer.md") + lfSizeOf(REFERENCES_DIR, "scenes.md");
 
   assert.deepEqual([skillMd <= SKILL_MD_MAX_BYTES, writerAndScenes <= WRITER_PLUS_SCENES_MAX_BYTES], [true, true]);

@@ -43,6 +43,8 @@ is the scene's `data`.
   - `camera(stageId, t, {focus: {x, y}, zoom?, dur?})`: pans and zooms your own full-frame stage
     element (`position:absolute;inset:0`) so `focus` lands at the frame center; call it with no
     `focus` to pull back to the full picture. Put the content to move inside that stage.
+- **3D:** `k.iso` builds a 3D world of your own (a stage, objects at any x, y, z, labels, links, a camera that
+  orbits, cranes, dollies and focuses); see the 3D signature scene recipe at the end. `k.is3d` is set once a stage exists.
 - **Sound and ambience:** `k.sound("whoosh" | "click" | "pop" | "chime" | "typing", t, volume?)`.
   End with `k.ambient()`: it drifts the direction's background layer (none on `plain`) and pushes
   the camera from scale 1 to 1.02, so the contact sheet shows edge content about 17 px further
@@ -119,3 +121,84 @@ decimals allowed, such as 8.5 by 11 `in`), `unit?` (default `mm`), `title?`, `no
 chip under the sheet). To adapt it, keep its shape: the layout computed in one place
 (`sheetLayout`), the markup, then one function per beat (`revealFirstSize`, `reshapeTo`), each beat
 on a cue from `data`.
+
+## 3D signature scene recipe
+
+When the content is spatial (layers a request passes through, parts joining a hub, a route, before and after), the
+signature scene can be a 3D world of its own. It is built with `k.iso`, the kit behind iso-journey and iso-map without
+their road, so no skill file is imported and a project template stays self-contained.
+
+1. Say the spatial metaphor in one sentence ("a token goes through the layers and back"). Pick its **form**: a
+   stack, an orbit (a hub and its parts), a grid or city, an exploded view, before and after worlds, a path.
+2. Pick the **camera language** that serves the form: `orbit` (around a hub), `crane` (from the isometric tilt toward
+   side-on, to separate layers), `dolly` (push in or back), `focus` (slide to a point). A follow-and-pull-back camera is
+   for a route only. Each 3D scene of a video takes a different form or camera language.
+3. Choose objects from the library (below) and name what each does on a spoken word: a lock opens, a layer lights, a
+   token moves. Put the cue words in `data` as `at` and resolve each with `c.cue(d.<field>.at, fallback)`.
+4. Build in this order: `stage = k.iso.stage()`, place objects, labels, links and pads, `stage.mount()`, then
+   `camera = k.iso.camera(stage)` and the choreography (the camera must see every label, so it comes after them).
+   The scene returns `{ chrome: true }`.
+5. Build and check: read the contact sheet at several times (`D check . --mid` and a few snapshots). Everything must
+   stay inside the 96 px margins and above y 900, names must not overlap, and nothing may sit under the top 110 px.
+
+### `k.iso` reference
+
+- `k.iso.stage({ tilt?, perspective?, plane?, floor?, motes? })` builds the scene's one stage (a second one stops
+  the build) and marks the scene as 3D. Default tilt `{ x: 56, z: -36 }` degrees, perspective 2200, a 3600-unit plane:
+  put things around `stage.center`. Units are plane pixels; z is height above the floor.
+  - `stage.place(kind, { name, x, y, z?, hidden?, ...options })` returns `{ height, anchors, actions, move(to, t, opts),
+    appear(t), run(action, t, args) }`. `move` takes `{ x, y, z, rotation, scale }`; `hidden` waits scaled to nothing
+    until `appear(t)`. Unknown kinds and actions stop the build and name the valid ones.
+  - `stage.label({ x, y, z, text, note?, name })` is a billboard pill; `show(t)` rises it. Keep names short.
+  - `stage.link({ name, from, to, z?, color?, thickness? })` is a glowing line on the floor; `draw(t, { dur })` grows it.
+  - `stage.pad({ name, x, y, w, d, h? })` is a slab with a lamp (`light(t)`, `dim(t)`); `stage.disc({ x, y, r, z?, dashed? })`
+    a flat ring or rune; `stage.box({ x, y, w, d, h, z?, color, glow?, all? })` returns markup for `stage.add(html)`.
+  - `stage.mount()` once, after everything is built.
+- `k.iso.camera(stage)`, all moves seek-safe and chained (each starts where the last ended; call them in time order):
+  `place({ focus, zoom, lift, dolly })` the opening view, `focus(t, { x, y }, { dur, zoom, lift })`,
+  `orbit(t, { degrees, dur, ease })` (labels turn back, so they stay upright), `crane(t, { tilt, dur })`,
+  `dolly(t, { z, dur })`. Do not overlap two moves of one kind. Keep an orbit under about 90 degrees when labels stand
+  to one side: a label that swings behind an object is hidden by it.
+- `k.iso.kinds` lists the objects. Static: `users server database queue printer document shield cloud phone container`.
+  Acting (`placed.run(action, t, args)`): `lock` (`open`, `close`), `gear` (`spin` `{ turns, dur }`), `layers`
+  (`light`, `dim` `{ index }`; `count` 2-6; `anchors.layerTop(i)` is the height of layer i, 0 the lowest), `scanner`
+  (`sweep`: one way, then back), `crash` (`crack`, `crash`), `key` (`turn`), `token` (`pulse`; move it with `move`),
+  `clock` (`advance` `{ by }` minutes). `k.iso.palette()` gives the world's colors (dark on dark themes).
+- Units: about 1 px per plane unit at zoom 1, so a 440-wide slab is a quarter of the frame and `stage.center` is the
+  middle. `tilt.x` is the view: 0 looks straight down, 90 is side-on (default 56). `lift` is screen pixels (the view sits
+  lower), `dolly` z is plane units toward the lens (negative pulls back; clamped to -1200..900). Footprint x height:
+  lock 180x90, 225 (shackle up); gear pair 330x200, 34; layers 440x300 per layer, 138 each (`anchors.size`, `layerTop`);
+  scanner 380x240, 160; crash 180x160, 120 (the halves part to about 320 wide); key 230x90, 70; token 80; clock
+  220x220, 30; users 300x300, 90; server 300x110, 190; database 200 round, 176; queue 360x120, 78; printer 240x170, 106;
+  document 150, 180; shield 180, 190; cloud 220, 260; phone 100, 180; container 280x130, 120. Hidden objects collapse on
+  every axis (`vanish(t, { z })` collapses them again). Icons on box walls turn with the wall: keep decoration symmetric.
+- Rules: reveals are recorded by the kit (`appear`, `show`, `draw`, `place`); never fade a preserve-3d element (scale or
+  move it; only leaf elements such as a lamp fade); no `Math.random` (seeded); transforms and opacity only.
+
+### Worked 3D examples
+
+Two project templates, each built with `k.iso` and each moving differently from iso-journey (no road, no packet, no
+pull-back). They show the mechanics (stage, camera, cues): design your own form, objects and camera for this topic, and
+never ship an example with only its data changed. Build warns when a project template equals a shipped example, and the
+history catches a renamed copy of the last video's template. Start a template from one, then change what it is made of.
+
+- `<skill>/assets/examples/signature-iso-stack.mjs`: layers stacked in space, a token descends through them in order
+  (each layer lights, its name rises beside it) and rises back in reverse (each layer dims). The camera cranes toward
+  side-on during the descent and orbits during the rise. Data: `layers` [{ name, note?, down?, up? }] (3-5, outermost
+  first; `down` is where the token reaches the layer going in, `up` where it comes back).
+
+```json
+{ "type": "scope-stack", "chapter": "How it works", "say": "This runs on Request Scope, a new general hook at the end of every server request. Its lock participant records the locks a request takes and clears their marks. If that fails, or the request throws, the caller gets an error, not a false success, and the locks are released.",
+  "data": { "layers": [{ "name": "Request Scope", "note": "the end-of-request hook", "down": "Scope", "up": "released" }, { "name": "Lock participant", "note": "records the locks", "down": "participant", "up": "throws" }, { "name": "Order locks", "note": "marks cleared", "down": "locks", "up": "clears" }] } }
+```
+
+- `<skill>/assets/examples/signature-iso-orbit.mjs`: one central object on a ring with satellites around it. On each
+  satellite's cue a line grows from the center, the satellite pops in on its pad and its name rises; the center can act
+  once they are all joined. The camera orbits through the whole scene while it pushes in slowly. Data:
+  `center` { title, kind?, note?, at?, do?: { action, at? } }, `satellites` [{ title, kind, note?, at? }] (3-5), `degrees?` (default: the turn near 140 that ends with no
+  satellite directly behind or in front of the hub).
+
+```json
+{ "type": "scope-orbit", "chapter": "The idea", "say": "So the lock row, and its edit-order row, the row that marks an order as being edited, now carry a mark: the session number of the server process that wrote them. A number, not a token. Zero means no mark.",
+  "data": { "center": { "title": "Lock row", "kind": "lock", "note": "holds the order", "at": "lock" }, "satellites": [{ "title": "Edit-order row", "kind": "document", "at": "edit-order" }, { "title": "Server session number", "kind": "server", "at": "session" }, { "title": "Zero: no mark", "kind": "token", "at": "Zero" }] } }
+```

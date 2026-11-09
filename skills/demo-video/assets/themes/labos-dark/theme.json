@@ -1,0 +1,9 @@
+{
+  "name": "labOS Dark",
+  "mode": "dark",
+  "colors": { "canvas": "#0C1822", "surface": "#142431", "ink": "#E8EEF2", "muted": "#A5B3BF", "light": "#8DA0AF", "accent": "#00B08A", "accent2": "#7FA8CC", "danger": "#F87171" },
+  "fonts": { "display": "Comfortaa", "body": "Montserrat", "mono": "JetBrains Mono" },
+  "weights": { "display": [700], "body": [400, 700, 900], "mono": [400, 700] },
+  "logo": "logo.svg",
+  "music_prompt": "Calm, modern corporate technology background music for a product explainer video. Soft pulsing synth pads, light clean electric piano arpeggios, gentle muted percussion, warm and quietly optimistic, steady 96 BPM, no vocals, no big drops or builds, a consistent low-energy bed that sits under a voiceover, subtle evolving texture."
+}

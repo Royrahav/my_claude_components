@@ -122,8 +122,9 @@ export function loadProject(project) {
 
 const DEFAULT_MUSIC_PROMPT = "Calm, modern corporate technology background music for a product explainer. Soft synth pads, light clean electric piano, gentle muted percussion, steady 96 BPM, no vocals, no drops or builds, even low-energy bed under a voiceover, clean resolved ending.";
 
-// A new project's brief.json; the defaults are the skill's recommended interview answers.
-export function defaultBrief({ name, product, musicPrompt }) {
+// A new project's brief.json; the defaults are the skill's recommended interview answers (`voice` replaces the
+// stock ElevenLabs one, init passes the machine engine's default).
+export function defaultBrief({ name, product, musicPrompt, voice }) {
   return {
     name,
     product,
@@ -131,7 +132,7 @@ export function defaultBrief({ name, product, musicPrompt }) {
     audience: "mixed: developers, product managers, customer-facing teams",
     length_s: 180,
     lang: "en",
-    voice: { id: "XrExE9yKIg1WjnnlVkGX", name: "Matilda", speed: 1.0 },
+    voice: voice ?? { id: "XrExE9yKIg1WjnnlVkGX", name: "Matilda", speed: 1.0 },
     captions: true,
     music: true,
     sfx: true,

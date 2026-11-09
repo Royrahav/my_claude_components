@@ -217,8 +217,8 @@ test("skillDocs_containNoEmOrEnDashes", () => {
   assert.deepEqual(withDashes, []);
 });
 
-const SKILL_MD_MAX_BYTES = 14500;
-const WRITER_PLUS_SCENES_MAX_BYTES = 39950;
+const SKILL_MD_MAX_BYTES = 14600;
+const WRITER_PLUS_SCENES_MAX_BYTES = 42300;
 const sizeOf = (...parts) => statSync(join(...parts)).size;
 // Measured with LF line endings, so a CRLF checkout does not change the result.
 const lfSizeOf = (...parts) => Buffer.byteLength(readFileSync(join(...parts), "utf8").replace(/\r\n/g, "\n"));

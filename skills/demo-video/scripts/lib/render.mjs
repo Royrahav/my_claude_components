@@ -3,6 +3,7 @@
 // about 0.5 dB of inter-sample overshoot, so -1.5 lands at about -1.2 dBTP).
 import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { loopFilter, loopPlan } from "./music.mjs";
 import { duration, ensureDir, ffmpeg, hf, lufs, r2, run } from "./util.mjs";
 
 const TARGET = "I=-14:TP=-1.5:LRA=11";
@@ -27,12 +28,15 @@ export function render(root, brief, tl, { quality = "standard", workers = 5, out
     const lv = lufs(video) ?? -18;
     const lm = lufs(music) ?? -18;
     const gain = r2(lv - MUSIC_UNDER_VOICE_DB - lm + (brief.music_gain_db ?? 0));
+    const plan = loopPlan(duration(music), T);
+    const { prefix, label } = loopFilter(plan);
     const graph =
-      `[1:a]atrim=0:${T},asetpts=PTS-STARTPTS,volume=${gain}dB,afade=t=in:st=0:d=1.2,afade=t=out:st=${Math.max(0, T - 4).toFixed(2)}:d=4[m];` +
+      prefix +
+      `${label}atrim=0:${T},asetpts=PTS-STARTPTS,volume=${gain}dB,afade=t=in:st=0:d=1.2,afade=t=out:st=${Math.max(0, T - 4).toFixed(2)}:d=4[m];` +
       `[0:a]asplit=2[v][k];[m][k]sidechaincompress=threshold=0.03:ratio=4:attack=20:release=450[md];` +
       `[v][md]amix=inputs=2:duration=first:normalize=0[o]`;
-    ffmpeg(["-i", video, "-i", music, "-filter_complex", graph, "-map", "[o]", "-ac", "2", "-ar", "48000", "-c:a", "pcm_s16le", mix]);
-    musicNote = `music ${gain} dB (bed ${MUSIC_UNDER_VOICE_DB} dB under voice, ducked under speech)`;
+    ffmpeg(["-i", video, ...Array(plan.copies).fill(["-i", music]).flat(), "-filter_complex", graph, "-map", "[o]", "-ac", "2", "-ar", "48000", "-c:a", "pcm_s16le", mix]);
+    musicNote = `music ${gain} dB (bed ${MUSIC_UNDER_VOICE_DB} dB under voice, ducked under speech${plan.copies > 1 ? `, looped ${plan.copies}x` : ""})`;
   } else {
     ffmpeg(["-i", video, "-vn", "-ac", "2", "-ar", "48000", "-c:a", "pcm_s16le", mix]);
   }

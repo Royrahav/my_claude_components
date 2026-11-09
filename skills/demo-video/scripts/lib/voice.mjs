@@ -1,12 +1,14 @@
-// ElevenLabs: narration with character timestamps (exact caption/cue timing, no Whisper pass),
-// stock voices (restricted keys often lack voices_read), music bed, and the small SFX set.
+// Narration in two engines, Kokoro (free, local, the default) and ElevenLabs (paid, an explicit choice), both
+// ending in the same character alignment (exact caption/cue timing, no Whisper pass); ElevenLabs stock voices
+// (restricted keys often lack voices_read), music bed, and the small SFX set.
 
-import { existsSync, readdirSync, readFileSync, writeFileSync, copyFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync, copyFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { resolveDirection } from "./direction.mjs";
-import { CACHE_DIR, apiKey, duration, ensureDir, ffmpeg, r3, readJson, writeJson, run } from "./util.mjs";
+import { CACHE_DIR, apiKey, config, duration, ensureDir, ffmpeg, r3, readJson, writeJson, run } from "./util.mjs";
+import { KOKORO_VOICES, checkedSpeed, clauseAlignment, kokoroWorker, spokenSeconds, splitClauses } from "./kokoro.mjs";
 
 const API = "https://api.elevenlabs.io";
 const MODEL = "eleven_multilingual_v2";
@@ -39,8 +41,60 @@ export const STOCK_VOICES = [
   { name: "Eric", id: "cjVigY5qzO86Huf0OWal", desc: "male, friendly, American", wps: 2.45 },
 ];
 
-export const voiceById = (idOrName) =>
-  STOCK_VOICES.find((v) => v.id === idOrName || v.name.toLowerCase() === String(idOrName).toLowerCase());
+// The narration engines; a brief voice without an engine is an ElevenLabs voice (briefs made before Kokoro).
+export const ENGINES = ["kokoro", "elevenlabs"];
+export const DEFAULT_ENGINE = "kokoro";
+const VOICES_BY_ENGINE = { kokoro: KOKORO_VOICES, elevenlabs: STOCK_VOICES };
+// Voices `samples` tries when none are named.
+const SAMPLE_VOICES = { kokoro: "Heart,Bella,Michael,Emma", elevenlabs: "Matilda,River,Brian,Daniel" };
+
+export function engineOf(voice) {
+  const engine = voice?.engine ?? "elevenlabs";
+  if (!ENGINES.includes(engine)) throw new Error(`brief.json voice.engine must be one of ${ENGINES.join(", ")}, got "${engine}"`);
+  return engine;
+}
+
+// The machine's engine for new projects: config tts, else Kokoro.
+export const machineEngine = () => engineOf({ engine: config().tts ?? DEFAULT_ENGINE });
+
+export const voicesOf = (engine) => VOICES_BY_ENGINE[engine];
+export const sampleVoiceNames = (engine) => SAMPLE_VOICES[engine];
+
+// A voice by id or name, in one engine's list or (without an engine) in all of them.
+export function voiceById(idOrName, engine) {
+  const wanted = String(idOrName).toLowerCase();
+  const pool = engine ? voicesOf(engine) : Object.values(VOICES_BY_ENGINE).flat();
+  return pool.find((v) => v.id === idOrName || v.name.toLowerCase() === wanted);
+}
+
+// The engine `narrate` should use when none was asked: a brief with no voice.engine follows the machine default
+// (its stored voice id may not exist in that engine, so chooseVoice then starts from the engine's default voice).
+export const impliedEngine = (voice) => (voice.engine ? undefined : machineEngine());
+
+// A new project's voice: the engine's first (default) voice at normal speed.
+export function defaultVoice(engine) {
+  const { id, name } = voicesOf(engine)[0];
+  return { engine, id, name, speed: 1.0 };
+}
+
+// The brief voice after `narrate --engine / --voice / --speed`. A new engine starts from its default voice (the
+// old id means nothing there); a new voice drops the measured rate, which belonged to the old one. An unknown
+// Kokoro voice throws (the worker needs a real id); an ElevenLabs id may be a custom one.
+export function chooseVoice(current, { engine, voice, speed }) {
+  const switched = Boolean(engine) && engine !== engineOf(current);
+  const next = switched ? { ...defaultVoice(engineOf({ engine })), speed: current.speed ?? 1 } : { ...current };
+  if (engine) next.engine = engineOf({ engine });
+  if (voice) {
+    const known = voiceById(voice, engineOf(next));
+    const other = ENGINES.find((e) => voiceById(voice, e));
+    if (!known && other) throw new Error(`${voice} is a ${other} voice; add --engine ${other}`);
+    if (!known && engineOf(next) === "kokoro") throw new Error(`unknown Kokoro voice "${voice}"; available: ${KOKORO_VOICES.map((v) => v.name).join(", ")}`);
+    Object.assign(next, { id: known?.id ?? voice, name: known?.name ?? voice });
+  }
+  if (switched || voice) delete next.measured_wps;
+  if (speed) next.speed = Number(speed);
+  return next;
+}
 
 // Busy (429) and server (5xx) errors are retried after these waits; any other status throws at once.
 const RETRY_WAITS_S = [5, 15, 30];
@@ -195,21 +249,61 @@ export async function synth(project, { voice, text, previous, next, speed = 1, o
   return { words: displayWords(res.alignment, spoken), seconds: duration(out) };
 }
 
-// The key a take is filed under: the voice, speed and spoken text, plus the delivery only when a tone
-// changed it, so a project without a tone (or balanced) keeps the stamps it had before tones existed.
-export function narrationStamp(brief, scene, pron) {
+// What else decides how a take sounds. ElevenLabs: the delivery, only when a tone changed it (a project without
+// a tone, or balanced, keeps the stamps it had before tones existed). Kokoro: the engine name (it has no tone).
+function stampSettings(brief) {
+  if (engineOf(brief.voice) === "kokoro") return ["kokoro"];
   const delivery = deliveryFor(brief.direction?.tone);
-  const settings = isBalanced(delivery) ? [] : [delivery];
-  return createHash("sha1").update(JSON.stringify([brief.voice.id, brief.voice.speed ?? 1, toSpoken(scene.say, pron), ...settings])).digest("hex").slice(0, 16);
+  return isBalanced(delivery) ? [] : [delivery];
 }
 
-// Raw takes for every scene (or `only`), 3 requests at a time.
-// Re-voices only scenes whose spoken text, voice or speed changed (stamp in raw/<id>.key). A take whose
+// The key a take is filed under: the voice, speed and spoken text, plus the engine settings, so a switch of
+// engine or voice re-voices.
+export function narrationStamp(brief, scene, pron) {
+  return createHash("sha1").update(JSON.stringify([brief.voice.id, brief.voice.speed ?? 1, toSpoken(scene.say, pron), ...stampSettings(brief)])).digest("hex").slice(0, 16);
+}
+
+// ElevenLabs: 3 requests at a time; each take is saved as it arrives, so a failed neighbour never costs credits twice.
+async function voiceWithElevenLabs(project, brief, jobs, save) {
+  const delivery = deliveryFor(brief.direction?.tone);
+  for (let k = 0; k < jobs.length; k += 3) {
+    await Promise.all(
+      jobs.slice(k, k + 3).map(async (job) => {
+        const take = await synth(project, { voice: brief.voice.id, text: job.text, previous: job.previous, next: job.next, speed: brief.voice.speed ?? 1, delivery, out: job.out });
+        save(job, take);
+      }),
+    );
+  }
+}
+
+// Kokoro: one worker run voices every job in parallel local processes; the alignment is built from its measures.
+async function voiceWithKokoro(project, brief, jobs, save) {
+  const speed = checkedSpeed(brief.voice.speed ?? 1);
+  const prepared = jobs.map((job) => ({ job, ...kokoroClauses(project, job.text) }));
+  const measured = kokoroWorker.run(prepared.map(({ job, clauses }) => ({ id: job.id, voice: brief.voice.id, speed, out: job.out, clauses })));
+  for (const { job, spoken, clauses } of prepared) {
+    if (!measured[job.id]) throw new Error(`Kokoro worker returned nothing for scene ${job.id}`);
+    if (!existsSync(job.out)) throw new Error(`Kokoro worker wrote no audio for scene ${job.id}`);
+    save(job, kokoroTake(spoken, clauses, measured[job.id]));
+  }
+}
+
+// The spoken text (pronunciations applied) split into clauses.
+function kokoroClauses(project, text) {
+  const spoken = respell(text, loadPron(project));
+  return { spoken, clauses: splitClauses(spoken.text) };
+}
+
+const kokoroTake = (spoken, clauses, measured) => ({ words: displayWords(clauseAlignment(clauses, measured), spoken), seconds: spokenSeconds(clauses, measured) });
+
+const VOICERS = { elevenlabs: voiceWithElevenLabs, kokoro: voiceWithKokoro };
+
+// Raw takes for every scene (or `only`).
+// Re-voices only scenes whose spoken text, voice, engine or speed changed (stamp in raw/<id>.key). A take whose
 // stamp now belongs to another id (scenes inserted or reordered) is moved there instead of re-synthesized.
 export async function narrate(project, scenes, brief, only, force = false) {
   const dir = ensureDir(join(project, "assets", "voice", "raw"));
   const pron = loadPron(project);
-  const delivery = deliveryFor(brief.direction?.tone);
   const stamp = (s) => narrationStamp(brief, s, pron);
   const file = (id, ext) => join(dir, `${id}.${ext}`);
   const takes = new Map();
@@ -219,7 +313,7 @@ export async function narrate(project, scenes, brief, only, force = false) {
   const results = [];
   const todo = [];
   for (const [i, s] of scenes.entries()) {
-    if (!s.say || (only && !only.has(s.id))) continue;
+    if (!s.say?.trim() || (only && !only.has(s.id))) continue;
     const take = !force && !only && takes.get(stamp(s));
     if (!take) todo.push({ s, i });
     else if (take.id !== s.id) {
@@ -230,40 +324,37 @@ export async function narrate(project, scenes, brief, only, force = false) {
     }
   }
   if (!todo.length && !results.length) results.push("all takes up to date");
-  for (let k = 0; k < todo.length; k += 3) {
-    const batch = todo.slice(k, k + 3).map(async ({ s, i }) => {
-      const r = await synth(project, {
-        voice: brief.voice.id,
-        text: s.say,
-        previous: scenes[i - 1]?.say,
-        next: scenes[i + 1]?.say,
-        speed: brief.voice.speed ?? 1,
-        delivery,
-        out: join(dir, `${s.id}.mp3`),
-      });
-      writeJson(join(dir, `${s.id}.words.json`), r.words);
-      writeFileSync(file(s.id, "key"), stamp(s));
-      return `${s.id} ${r.seconds.toFixed(1)}s`;
-    });
-    results.push(...(await Promise.all(batch)));
-  }
+  const jobs = todo.map(({ s, i }) => ({ id: s.id, text: s.say, previous: scenes[i - 1]?.say, next: scenes[i + 1]?.say, out: file(s.id, "mp3"), stamp: stamp(s) }));
+  // A take about to be re-voiced is invalid until saved: a failed run must leave no old key, words or audio that
+  // could pass for the new take (the reuse pass above has already read what it needs).
+  for (const job of jobs) for (const ext of ["key", "mp3", "words.json"]) rmSync(file(job.id, ext), { force: true });
+  const save = (job, take) => {
+    writeJson(file(job.id, "words.json"), take.words);
+    writeFileSync(file(job.id, "key"), job.stamp);
+    results.push(`${job.id} ${take.seconds.toFixed(1)}s`);
+  };
+  if (jobs.length) await VOICERS[engineOf(brief.voice)](project, brief, jobs, save);
   return results;
 }
 
-export async function samples(project, text, names) {
+export async function samples(project, text, names, engine = "elevenlabs") {
   const dir = ensureDir(join(project, "samples"));
-  const picks = names.map((n) => voiceById(n)).filter(Boolean);
-  return Promise.all(
-    picks.map(async (v) => {
-      const out = join(dir, `voice-${v.name.toLowerCase()}.mp3`);
-      const r = await synth(project, { voice: v.id, text, out });
-      return `${v.name} (${v.desc}): ${out} ${r.seconds.toFixed(1)}s`;
-    }),
-  );
+  const picks = names.map((n) => voiceById(n, engine)).filter(Boolean);
+  const outOf = (v) => join(dir, `voice-${v.name.toLowerCase()}.mp3`);
+  const line = (v, seconds) => `${v.name} (${v.desc}): ${outOf(v)} ${seconds.toFixed(1)}s`;
+  if (engine === "kokoro") return picks.length ? kokoroSamples(project, text, picks, outOf, line) : [];
+  return Promise.all(picks.map(async (v) => line(v, (await synth(project, { voice: v.id, text, out: outOf(v) })).seconds)));
 }
 
-export async function music(project, prompt, seconds) {
-  const out = join(ensureDir(join(project, "assets", "music")), "bgm.mp3");
+function kokoroSamples(project, text, picks, outOf, line) {
+  const { spoken, clauses } = kokoroClauses(project, text);
+  const measured = kokoroWorker.run(picks.map((v) => ({ id: v.id, voice: v.id, speed: 1, out: outOf(v), clauses })));
+  return picks.map((v) => line(v, kokoroTake(spoken, clauses, measured[v.id]).seconds));
+}
+
+// One music track of the given length; out defaults to the project bed.
+export async function music(project, prompt, seconds, out = join(project, "assets", "music", "bgm.mp3")) {
+  ensureDir(dirname(out));
   const audio = await call(project, "/v1/music?output_format=mp3_44100_128", { prompt, music_length_ms: Math.min(600000, Math.round(seconds * 1000)), force_instrumental: true }, true);
   writeFileSync(out, audio);
   return out;

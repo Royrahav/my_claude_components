@@ -5,9 +5,10 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { CONFIG_PATH, ensureDir } from "./util.mjs";
 import { variantOf } from "./variants.mjs";
-import { isClose, isSummary } from "./house-style.mjs";
+import { isClose, isSummary, isThreeD } from "./house-style.mjs";
 
 const MAX_RECORDS = 20;
+const PRINT_MARK = "#";
 const MAX_SHOWN = 5;
 const MAX_TASTE_LINES = 20;
 const COMPARED_FOR_SEQUENCE = 3;
@@ -19,8 +20,9 @@ export function historyPaths(env = process.env) {
   return { history: env.DEMO_VIDEO_HISTORY ?? join(dir, "history.jsonl"), taste: env.DEMO_VIDEO_TASTE ?? join(dir, "taste.md") };
 }
 
-// scenes carry id/type/variant; `sources[i]` is where scene i's template came from (templateSource).
-export function recordOf({ root, brief, scenes, sources, direction, date = new Date().toISOString().slice(0, 10) }) {
+// scenes carry id/type/variant; `sources[i]` is where scene i's template came from (templateSource) and `threeD[i]`
+// whether it built a 3D stage (house-style isThreeD); `templates[i]` is its project template's fingerprint (templateFacts).
+export function recordOf({ root, brief, scenes, sources, direction, threeD = [], templates = [], date = new Date().toISOString().slice(0, 10) }) {
   const close = scenes.findLast(isClose);
   const summary = scenes.length >= 2 && isSummary(scenes[scenes.length - 2]) ? scenes[scenes.length - 2] : null;
   return {
@@ -35,6 +37,8 @@ export function recordOf({ root, brief, scenes, sources, direction, date = new D
     summary: summary ? describeScene(summary) : null,
     signature: [...new Set(scenes.filter((_, i) => ["project", "custom"].includes(sources[i])).map((scene) => scene.type))],
     motif: brief.direction?.motif ?? null,
+    music_mood: brief.music_mood ?? null,
+    three_d: [...new Set(scenes.flatMap((scene, i) => (isThreeD(scene, i, threeD) ? [templates[i] ? `${scene.type}${PRINT_MARK}${templates[i].fingerprint}` : scene.type] : [])))],
   };
 }
 
@@ -70,6 +74,9 @@ export function recordRender(record, path) {
 // The most recent videos other than this project's, newest first.
 export const otherVideos = (records, root, count = MAX_SHOWN) => records.filter((entry) => !sameRoot(entry.root, resolve(root))).slice(-count).reverse();
 
+// The music mood of the most recent earlier video that used a library mood, or null.
+export const lastMusicMood = (records, root) => otherVideos(records, root, MAX_RECORDS).find((entry) => entry.music_mood)?.music_mood ?? null;
+
 const field = (label, value) => (value ? [`${label} ${value}`] : []);
 
 export function describeRecord(r) {
@@ -81,6 +88,8 @@ export function describeRecord(r) {
     ...field("summary", r.summary),
     ...field("signature", r.signature?.join("+")),
     ...field("motif", r.motif),
+    ...field("music", r.music_mood),
+    ...field("3d", r.three_d?.map((entry) => entry.split(PRINT_MARK)[0]).join("+")),
   ];
   return `${r.date} ${r.name} | ${parts.join(", ")} | ${r.scenes.join(">")}`;
 }
@@ -114,6 +123,7 @@ export function historyWarnings(record, records) {
     sameCloseWarning(record, latest),
     sameSequenceWarning(record, others.slice(0, COMPARED_FOR_SEQUENCE)),
     sameLookWarning(record, latest),
+    sameThreeDWarning(record, latest),
   ].filter(Boolean);
 }
 
@@ -129,6 +139,17 @@ function sameSequenceWarning(record, recent) {
   const sequence = types(record.scenes).join(">");
   const twin = recent.find((entry) => types(entry.scenes).join(">") === sequence);
   return twin ? `house style: the scene-type sequence matches ${twin.name}; change the structure` : null;
+}
+
+// An earlier record without `three_d` is read by its iso-* scene types.
+const threeDEntries = (entry) => entry.three_d ?? types(entry.scenes).filter((type) => type.startsWith("iso-"));
+// A project template is "type#fingerprint": it matches by its source, so a renamed copy is the same template.
+const sameTemplate = (entry, other) => (entry.includes(PRINT_MARK) ? other.endsWith(entry.slice(entry.indexOf(PRINT_MARK))) : other === entry);
+
+function sameThreeDWarning(record, latest) {
+  const earlier = threeDEntries(latest);
+  const shared = (record.three_d ?? []).filter((entry) => earlier.some((other) => sameTemplate(entry, other)));
+  return shared.length ? `house style: the 3D template ${shared.map((entry) => entry.split(PRINT_MARK)[0]).join(", ")} was also used by the most recent video (${latest.name}); use another form or camera language` : null;
 }
 
 function sameLookWarning(record, latest) {

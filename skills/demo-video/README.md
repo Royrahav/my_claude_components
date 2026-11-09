@@ -4,7 +4,7 @@ A Claude Code and Cursor skill that turns a feature, bug fix or release into a f
 video (1920x1080 MP4). You give Claude the context; it asks a few questions, shows you the script,
 then produces the video. Each video has:
 - animated, on-brand scenes built with HyperFrames;
-- an ElevenLabs voiceover;
+- a Kokoro voiceover (free, local; ElevenLabs optional);
 - burned-in captions;
 - background music and light sound effects;
 - broadcast-level loudness;
@@ -21,11 +21,12 @@ bespoke signature scene.
    - macOS / Linux: `~/.claude/skills/demo-video`
 2. Open Claude Code and say: **"set up the demo-video skill"**. Claude checks Node 22+, ffmpeg and
    the render browser, and installs what's missing (with your OK). It also installs the skill's two
-   helper agents (research and fact-check) into `~/.claude/agents/`. It then asks for the one thing
-   it needs from you: an **ElevenLabs API key** with Text to Speech access. Music and Sound Effects
-   access are optional.
+   helper agents (research and fact-check) into `~/.claude/agents/`. The voice is Kokoro, free and
+   local: it needs `python -m pip install --user kokoro-onnx` and two model files in `~/.cache/kokoro` (setup
+   prints the exact steps). An **ElevenLabs API key** is optional: only for generating music and sound
+   effects, or for ElevenLabs voices (`narrate --engine elevenlabs`).
 
-The key is stored only on your machine, in `~/.config/demo-video/.env`.
+An ElevenLabs key, if you add one, is stored only on your machine, in `~/.config/demo-video/.env`.
 
 Cursor: it reads skills from `~/.claude/skills`, so the folder above works as is; or put it in
 `~/.cursor/skills/demo-video`. `D setup` also installs the two helpers into `~/.cursor/agents/`
@@ -47,8 +48,8 @@ Videos go to the projects folder chosen at setup (default `~/demo-videos/<name>/
 
 ## Look and feel
 
-The default is the company theme (labOS). Built-in alternatives are `neutral` (light) and
-`midnight` (dark). You can also match any brand: give Claude a website URL, or colors, a Google
+The default is the company theme (labOS). Built-in alternatives are `labos-dark` (the
+same brand on a dark canvas), `neutral` (light) and `midnight` (dark, unbranded). You can also match any brand: give Claude a website URL, or colors, a Google
 font and a logo.
 
 Within the theme, each video gets its own structure and style, designed from what it explains:
@@ -65,9 +66,10 @@ Summary, then a closing scene whose form varies.
 
 Each video follows one running example through ordered chapters, with a chapter progress rail and
 one persistent background behind the scenes. Where the content has a spatial or flow shape (an
-architecture, a request's journey, the zoom-out summary), Claude can use 3D scenes: an isometric
-world with glowing objects, a camera that flies from stop to stop and pulls back to the whole map.
-3D stays the exception (about a third of the scenes at most) and looks best on `midnight`.
+architecture, layers a request passes through, a hub and its parts, a journey), Claude can use 3D scenes: an
+isometric world with glowing objects and a camera that orbits, cranes, dollies or follows. At least one 3D scene is
+designed for the topic (layers with a token going through them, a hub with satellites, ...); the built-in journey and
+map are fallbacks. 3D stays the exception (about a third of the scenes at most) and looks best on `labos-dark` or `midnight`.
 3D videos render about 2-3 times slower; render them with nothing else heavy running.
 
 ## Cost
@@ -80,8 +82,8 @@ took 48 minutes, because every subagent re-pays its cache writes.
 
 Tip: run the session on Opus. The two helpers pick Sonnet themselves.
 
-ElevenLabs: about one credit per narrated character (a 5-minute video is about 4,500), plus one
-music track.
+Narration with Kokoro is free. ElevenLabs voices (optional): about one credit per narrated character (a 5-minute
+video is about 4,500). Music costs credits only the first time a mood is used: the 5 mood tracks are made once per machine and reused by every video.
 
 ## Development
 

@@ -6,8 +6,17 @@ scenes, the narration and the on-screen text.
 `D` = `node "<skill dir>/scripts/demo.mjs"`. The user's constraints are binding. Plain hyphens
 only, never em or en dashes.
 
-Don't run narrate, sfx, music or render at the script step: they cost ElevenLabs credits, and
-they belong to production, after gate 1.
+Don't run narrate, sfx, music or render at the script step: they belong to production, after
+gate 1 (sfx and music generation cost credits).
+
+## Scope: the feature, not its development
+
+Show what the feature is, how it works technically, and how to use, enable or configure it in the
+product. Never how it was built, reviewed, tested or delivered (tests, QA, code review, CI, CL, PR,
+ticket, sprint), in the narration or on screen. Status in product words: shipped, next version, off
+by default and how to enable it. Ignore FACTS.md "Process (not for the video)". Build warns
+`mentions "..." (development process)`: reword. A development-tool product lists the terms it needs
+in brief.json `allow_terms` (`["CI"]`; a term lifts the hits that contain it as whole words).
 
 ## Script
 
@@ -15,10 +24,10 @@ they belong to production, after gate 1.
    FACTS.md is the claim whitelist: nothing outside it is said or shown. Run `D history .` (the
    last videos and the taste notes): make this video differ from them in structure (scene-type order; variants don't
    count), close form and preset unless the content demands otherwise, and apply the taste notes.
-2. Pick the spine first; order beats variety. A `direction.thread` (one running example), then
-   `chapter`s in dependency order (one unbroken run each, never revisited), each scene opening
-   with a bridge from the last one's limit ("so we add caching"), no term used before it is
-   introduced.
+2. Pick the spine first; order beats variety (Story order, below). A `direction.thread` (one
+   running example), then `chapter`s in Story order (one unbroken run each, never revisited; dependency order inside a chapter),
+   each scene opening with a bridge from the last one's limit ("so we add caching"), no term used
+   before it is introduced.
 3. Design the structure (scenes.md, Designing the structure). Ask what this audience needs first
    and what shape the content has: a journey, a turn, a before/after, a day in someone's work, a
    number, a question, a myth. Pick the pattern, or combine some, that fits. Never reuse one
@@ -27,10 +36,11 @@ they belong to production, after gate 1.
 4. Propose a direction (scenes.md, Creative direction): the preset closest to the content's feel,
    a motif (the visual idea tied to this feature), a mood, and only the knobs the content asks
    for beyond the preset (`rail` and `background: world` suit a chaptered journey: visuals.md). Tone and `notes` are already set (Tone, Art freedom). Write it to
-   brief.json `direction`, and rewrite `music_prompt` from the mood: instrumental, no vocals, even
-   enough to sit under a voiceover.
+   brief.json `direction`, and set `music_mood` (one of the five library moods, producer.md) only when the
+   feel needs one; unset, the first `D music .` picks it from tone and preset and keeps it.
 5. Plan the signature scene (below).
-6. Write `scenes.json` in one Write. For each scene, pick the template and the layout variant that fit
+6. Write the logline, then the question ladder (Story order), then `scenes.json` in one Write, each
+   scene with its `question`. For each scene, pick the template and the layout variant that fit
    its content (scenes.md, Templates), and vary them: no template and variant back to back, and
    not one look for every scene.
 7. Add `pronunciations.json` entries for names the voice may get wrong: product names,
@@ -44,6 +54,31 @@ recommended option for the rest. Only one that changes the story goes to gate 1.
 
 A layout no template offers: read `<skill dir>/references/custom-scene.md`.
 
+## Story order
+
+A newcomer must follow it on one watch. Write the logline (one sentence: who gets what, and how), then
+the question ladder: each scene answers one question the previous scene made the viewer ask, kept
+in its `question` field (scenes.md).
+
+Outside-in order:
+1. What it is and why it matters: the problem, with the running example.
+2. The idea in one picture.
+3. Watch it work on the running example.
+4. How it works: the mechanism.
+5. How it is wired, or how to use it in the product.
+6. Limits and status.
+7. Summary, then close.
+
+Picture before mechanism, mechanism before wiring, interface before internals; no code for something
+not yet said in plain words; one new term per scene, defined in plain words on first use; the running
+example by scene 2-3; over 2 min, a one-line roadmap after the hook; each chapter ends on a one-line
+takeaway that bridges to the next.
+
+Two default spines, a starting order to adapt (scenes.md still decides the shape and variety):
+- Engineers: problem, idea, watch it run, how it works, how to build on or use it, limits and status.
+- Mixed audience: problem story, what changes for the user (the picture), how it works in one picture,
+  how to turn it on or use it, status.
+
 ## Condensing
 
 Idea budget: about 90 s, the core message plus 2 points; 3 min, core plus 3; 5 min, core plus 3-4,
@@ -52,8 +87,7 @@ one a deep dive. Spend it on the focus answers; cut the rest or give it a line. 
 ## Tone
 
 `direction.tone` (unset is `balanced`). Humor adds no claim and is never at anyone's expense.
-Put the speed in brief.json `voice.speed` (the speed fit may change it); write the music mood to
-match.
+Put the speed in brief.json `voice.speed` (the speed fit may change it); set `music_mood` to match.
 
 | Tone | Writing and humor | Speed, music | Presets | Close forms |
 |---|---|---|---|---|
@@ -91,19 +125,19 @@ template, history warnings) never overrides the order.
 
 ## 3D where it fits
 
-`iso-journey` and `iso-map` only for spatial or flow content: an architecture, a request's journey, where things
-live, the zoom-out summary. Explanations, code, numbers, lists and decisions stay 2D. At most about a third of the
-scenes; clarity and story order beat visuals (visuals.md).
+3D only for spatial or flow content: layers, hubs, architectures, journeys; explanations, code, numbers, lists and
+decisions stay 2D. At most a third of the scenes. For spatial content design one 3D scene for this topic (custom-scene.md,
+3D recipe), never an example with only its data changed; `iso-journey` and `iso-map` are fallbacks, once each. Vary form
+and camera across 3D scenes and from the last video (visuals.md).
 
 ## Signature scene
 
 Every video gets at least one signature scene designed only for this demo: a visual metaphor
-tied to the feature, such as a sheet reshaping from A4 to Letter, or a request packet traveling
-the real architecture. Build it from the direction's motif. At most 2 per video (3 for `auteur`).
+tied to the feature, such as a sheet reshaping from A4 to Letter or a packet traveling the architecture. At most 2 per video (3 for `auteur`).
 
 - It is a project template built with the kit (custom-scene.md, Signature scene recipe), 8-15 s,
   with each beat cued to the narration. Start from the worked example
-  `<skill dir>/assets/examples/signature-sheet.mjs` (a sheet reshaping from A4 to Letter): copy it
+  `<skill dir>/assets/examples/signature-sheet.mjs` copy it
   and adapt it to this video's motif.
 - Plan it in scenes.json at the script step. Write its template after gate 1 approves the script,
   before production; it must pass build and check like any scene.
@@ -144,10 +178,11 @@ Show the user this, nothing else:
 
 ```
 structure: <pattern, or patterns combined> | <why it fits, a few words>
-s01 title: <the narration> | on screen: <one line>
-s02 split: <the narration> | on screen: <one line>
-...
+logline: <who gets what, and how>
 spine: <thread> | <chapter, chapter, ...>
+s01 title: <the narration> | on screen: <one line>   (no question on title, beat and close)
+s02 split: Q "<the question this scene answers>" | <the narration> | on screen: <one line>
+...
 style: <preset>, <knobs changed, or none> | motif: <the visual idea> | mood: <the feel>
 tone: <level> | freedom: <level> | notes: <yes/none>
 engagement: <devices picked>
@@ -166,7 +201,9 @@ One line per scene. `sNN` is the scene's position: s01, s02, and so on.
 For a user change (a style change is an edit to brief.json `direction`), the checker's problems,
 a layout problem that needs new wording, or a `house style:` build warning:
 
-1. Apply it to scenes.json or brief.json. Keep the summary rule. For a warning:
+1. Apply it to scenes.json or brief.json. Keep the summary rule. A user change that adds, removes or
+   moves a section re-plans the whole question ladder; never splice a scene in at the nearest spot.
+   For a warning:
    - the ending, or a recap's items: fix the summary scene;
    - no signature scene: plan one (Signature scene);
    - one template and variant back to back, or one template in over 40% of the scenes: change a
@@ -178,13 +215,15 @@ a layout problem that needs new wording, or a `house style:` build warning:
      monotone rhythm: add a `beat` or lengthen a showcase.
    - a chapter reappearing after another: reorder so each chapter is one run, or rename it;
    - `empty for N s`: reveal the first element on the first spoken word or an earlier cue, or add a `backdrop` or `chapter_intro` (visuals.md).
+   - `mentions "..." (development process)`: reword the scene to the product (Scope).
    History warnings yield to the creator's notes, taste notes and `auteur` (Art freedom), and to
    the order (Script 2): never reorder scenes to look different.
 2. Run `D plan .` and `D script .`.
 3. Note the scenes whose `say` or pronunciation changed: after gate 1 they need `D narrate .`,
    which re-voices only those. Note the scenes whose claims or on-screen text changed: they need
    the checker again (SKILL.md, Re-check).
-4. Show the user only the changed scenes, in the gate 1 format, then the new `plan:` line.
+4. Show the user only the changed scenes, in the gate 1 format, then the new `plan:` line; after a
+   reorder, the whole list.
 
 ## Final look
 

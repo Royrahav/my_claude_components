@@ -18,6 +18,35 @@ by default and how to enable it. Ignore FACTS.md "Process (not for the video)". 
 `mentions "..." (development process)`: reword. A development-tool product lists the terms it needs
 in brief.json `allow_terms` (`["CI"]`; a term lifts the hits that contain it as whole words).
 
+## Sell the why first (the most important part)
+
+Assume the viewer knows nothing: not the feature, not the code area, not its terms, not why anyone
+built it. Sell the idea before you explain it. Why it exists decides whether anyone keeps watching
+and whether they ever use it, so it gets the most care of any part, for a feature, a mechanism in
+the code or a fix alike.
+
+- Show the pain before naming the answer: what goes wrong, or what is hard, without it, on one
+  concrete case (FACTS.md "Problem before", or the running example). A tiny before-picture or a
+  three-line sketch beats a list of abstract gaps. Then name the feature as the answer to that pain.
+- Say why the viewer should care right now: when they will meet the situation, and what changes for
+  them ("next time you need X, you do Y instead of Z"). A promise of 2-3 benefits, paid off later
+  (the recap calls back to it).
+- Explain, don't state: every claim of value gets its reason or an example ("so a request that
+  throws still logs its time"), never only an adjective ("robust", "simple").
+- Every later chapter opens with its own small why: a use case starts with the problem it solves, a
+  rule with what breaks without it.
+- The test: by about the first minute, a newcomer can say in one sentence why this exists and when
+  they would use it. The duck checks it (Duck review).
+
+## Duck review
+
+After `D script .`, the duck reads only your pitch and SCRIPT.md and replies `purpose:`, `why me:`,
+`by:`, then lost, term, told, ask, flat and structure lines. Fix the script and its structure
+(Revision), with only what FACTS.md supports: a wrong or late `purpose` or `why me` rewrites the why
+chapter, never patches it; `ask` lines are candidates for spoken questions (Engagement); cut what it
+calls flat when over length. A second round only if `purpose` or `why me` still misses. Then the
+fact-check, on the final text.
+
 ## Script
 
 1. Read `<project>/FACTS.md`, `<project>/brief.json` and `<skill dir>/references/scenes.md`.
@@ -39,8 +68,9 @@ in brief.json `allow_terms` (`["CI"]`; a term lifts the hits that contain it as 
    brief.json `direction`, and set `music_mood` (one of the five library moods, producer.md) only when the
    feel needs one; unset, the first `D music .` picks it from tone and preset and keeps it.
 5. Plan the signature scene (below).
-6. Write the logline, then the question ladder (Story order), then `scenes.json` in one Write, each
-   scene with its `question`. For each scene, pick the template and the layout variant that fit
+6. Write the logline and the pitch (2-4 sentences in the video's terms: what it is, why it exists,
+   who should care and when; the duck gets it), then the question ladder (Story order), then
+   `scenes.json` in one Write, each scene with its `question`. For each scene, pick the template and the layout variant that fit
    its content (scenes.md, Templates), and vary them: no template and variant back to back, and
    not one look for every scene.
 7. Add `pronunciations.json` entries for names the voice may get wrong: product names,
@@ -61,7 +91,8 @@ the question ladder: each scene answers one question the previous scene made the
 in its `question` field (scenes.md).
 
 Outside-in order:
-1. What it is and why it matters: the problem, with the running example.
+1. Why it matters: the pain without it, shown on a concrete case, then what it gives and when the
+   viewer will use it (Sell the why first). The longest-cared-for part, not a one-scene preamble.
 2. The idea in one picture.
 3. Watch it work on the running example.
 4. How it works: the mechanism.
@@ -69,25 +100,33 @@ Outside-in order:
 6. Limits and status.
 7. Summary, then close.
 
-Picture before mechanism, mechanism before wiring, interface before internals; no code for something
+Purpose before picture, picture before mechanism, mechanism before wiring, interface before internals; no code for something
 not yet said in plain words; one new term per scene, defined in plain words on first use; the running
 example by scene 2-3; over 2 min, a one-line roadmap after the hook; each chapter ends on a one-line
 takeaway that bridges to the next.
 
 Two default spines, a starting order to adapt (scenes.md still decides the shape and variety):
-- Engineers: problem, idea, watch it run, how it works, how to build on or use it, limits and status.
-- Mixed audience: problem story, what changes for the user (the picture), how it works in one picture,
-  how to turn it on or use it, status.
+- Engineers: the pain and why it matters to them, idea, watch it run, how it works, how to build on
+  or use it, limits and status.
+- Mixed audience: problem story and why it matters to them, what changes for the user (the picture),
+  how it works in one picture, how to turn it on or use it, status.
 
 ## Condensing
 
 Idea budget: about 90 s, the core message plus 2 points; 3 min, core plus 3; 5 min, core plus 3-4,
-one a deep dive. Spend it on the focus answers; cut the rest or give it a line. No cramming.
+one a deep dive. Spend it on the focus answers; cut the rest or give it a line. No cramming. The
+why (Sell the why first) is part of the core: give it about a sixth of the runtime, and cut detail
+elsewhere before you cut it.
 
 ## Tone
 
 `direction.tone` (unset is `balanced`). Humor adds no claim and is never at anyone's expense.
-Put the speed in brief.json `voice.speed` (the speed fit may change it); set `music_mood` to match.
+Put the speed in brief.json `voice.speed`; set `music_mood` to match.
+
+Pace: calm enough to follow new ideas on one watch. Viewers found 1.12 slightly too fast. The speed
+fit stays within 0.04 of the tone's speed below (`D plan` warns `too long for a comfortable pace`
+past it): a script that only fits faster is trimmed (Condensing), or its `length_s` is raised;
+never sped up.
 
 | Tone | Writing and humor | Speed, music | Presets | Close forms |
 |---|---|---|---|---|
@@ -107,6 +146,11 @@ A menu, not a checklist: pick 3-5 that fit this content, varying from the last v
 - An open loop paid off later; stakes and contrast; a recurring person or job.
 - A pattern interrupt every 30-45 s: a `beat` scene, a full-bleed statement, a silent second.
 - Show, don't list. Rhythm: 3-6 s beats among 15-20 s showcases.
+- Spoken questions: ask the viewer's own question aloud at the turns where understanding needs it,
+  then answer it: before the why ("so why do we need this?"), before the how-to ("OK, so how do I
+  use it?"), before an edge case ("and if it fails?"), or "so who does the work?". 2-5 per video,
+  in this video's words, never one per scene. As a scene's first sentence, or a `beat` with a
+  one-line `say`. The duck's `ask` lines show where.
 - A callback ending (close `callback`).
 
 ## Art freedom
@@ -179,6 +223,8 @@ Show the user this, nothing else:
 ```
 structure: <pattern, or patterns combined> | <why it fits, a few words>
 logline: <who gets what, and how>
+why: <the pain and why the viewer cares, as the script says it> | lands by sNN
+duck: <the purpose as the duck understood it> | <fixes made from its notes, or none>
 spine: <thread> | <chapter, chapter, ...>
 s01 title: <the narration> | on screen: <one line>   (no question on title, beat and close)
 s02 split: Q "<the question this scene answers>" | <the narration> | on screen: <one line>

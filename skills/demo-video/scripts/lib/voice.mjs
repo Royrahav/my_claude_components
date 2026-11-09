@@ -24,6 +24,28 @@ export const TONE_DELIVERY = Object.freeze({
 });
 const SIMILARITY_BOOST = 0.75;
 
+// The comfortable narration speed per tone (writer.md, Tone). Viewers found 1.12 slightly too fast, so the
+// speed fit stays within PACE_HEADROOM of it: a script that only fits faster is trimmed or gets a longer
+// length_s instead.
+export const TONE_SPEED = Object.freeze({ playful: 1.05, light: 1.0, balanced: 1.0, serious: 0.95, critical: 1.0 });
+export const PACE_HEADROOM = 0.04;
+const SPEED_FLOOR = 0.9;
+
+// The speed that fits `words` (spoken at `rate` w/s at the current `speed`) plus `overhead` seconds into
+// `target`, clamped to the tone's pace. When the script is too long even at the ceiling, `over` says how
+// many words to trim, or which length_s fits at the ceiling.
+export function speedFit({ speed, words, rate, target, overhead, tone }) {
+  const pace = TONE_SPEED[tone ?? "balanced"] ?? TONE_SPEED.balanced;
+  const max = pace + PACE_HEADROOM;
+  const min = Math.max(SPEED_FLOOR, pace - 2 * PACE_HEADROOM);
+  const speech = Math.max(1, target - overhead);
+  const raw = (speed * (words / rate)) / speech;
+  const fitted = Math.min(max, Math.max(min, raw));
+  if (raw <= max) return { speed: fitted, max, over: null };
+  const budget = Math.floor((speech * rate * max) / speed);
+  return { speed: fitted, max, over: { trim: words - budget, length: Math.ceil(overhead + ((words / rate) * speed) / max) } };
+}
+
 // The stability and style for a tone; an unset tone is balanced. An unknown tone throws.
 export const deliveryFor = (tone) => TONE_DELIVERY[resolveDirection({ tone }).tone ?? "balanced"];
 

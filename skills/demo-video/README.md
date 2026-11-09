@@ -20,8 +20,8 @@ bespoke signature scene.
    - Windows: `%USERPROFILE%\.claude\skills\demo-video`
    - macOS / Linux: `~/.claude/skills/demo-video`
 2. Open Claude Code and say: **"set up the demo-video skill"**. Claude checks Node 22+, ffmpeg and
-   the render browser, and installs what's missing (with your OK). It also installs the skill's two
-   helper agents (research and fact-check) into `~/.claude/agents/`. The voice is Kokoro, free and
+   the render browser, and installs what's missing (with your OK). It also installs the skill's three
+   helper agents (research, a rubber-duck clarity review, and fact-check) into `~/.claude/agents/`. The voice is Kokoro, free and
    local: it needs `python -m pip install --user kokoro-onnx` and two model files in `~/.cache/kokoro` (setup
    prints the exact steps). An **ElevenLabs API key** is optional: only for generating music and sound
    effects, or for ElevenLabs voices (`narrate --engine elevenlabs`).
@@ -29,7 +29,7 @@ bespoke signature scene.
 An ElevenLabs key, if you add one, is stored only on your machine, in `~/.config/demo-video/.env`.
 
 Cursor: it reads skills from `~/.claude/skills`, so the folder above works as is; or put it in
-`~/.cursor/skills/demo-video`. `D setup` also installs the two helpers into `~/.cursor/agents/`
+`~/.cursor/skills/demo-video`. `D setup` also installs the three helpers into `~/.cursor/agents/`
 when `~/.cursor` exists (`--host claude|cursor|both` overrides, `--cursor-model <id>` picks their
 model). Cursor-specific notes are in `references/hosts.md`.
 
@@ -51,6 +51,13 @@ Videos go to the projects folder chosen at setup (default `~/demo-videos/<name>/
 The default is the company theme (labOS). Built-in alternatives are `labos-dark` (the
 same brand on a dark canvas), `neutral` (light) and `midnight` (dark, unbranded). You can also match any brand: give Claude a website URL, or colors, a Google
 font and a logo.
+
+Every video sells the why first: it assumes the viewer knows nothing, shows the problem on a
+concrete case before naming the feature, says when the viewer will use it, and asks the viewer's
+own questions aloud where they help ("so why do we need this?"). Before the fact-check, a rubber-duck
+helper hears the idea and reads the script cold, and reports where a newcomer gets lost; the script
+is fixed from its notes. The narration keeps a calm pace: a script too long for its length is
+trimmed, never sped up.
 
 Within the theme, each video gets its own structure and style, designed from what it explains:
 Claude proposes a style (calm and technical, energetic, story-driven or minimal) with the script,
@@ -75,12 +82,12 @@ map are fallbacks. 3D stays the exception (about a third of the scenes at most) 
 ## Cost
 
 Claude: voice, timing, animation and rendering run in local scripts that print short summaries.
-The session writes the script and produces the video itself; two cheap Sonnet helpers research
-your sources and fact-check the script. Measured: a 75-second video cost about $3.3 at list prices
+The session writes the script and produces the video itself; three cheap Sonnet helpers research
+your sources, review the script as a newcomer, and fact-check it. Measured: a 75-second video cost about $3.3 at list prices
 and took 26 minutes in one Opus session. The same video split across more agents cost $7.25 and
 took 48 minutes, because every subagent re-pays its cache writes.
 
-Tip: run the session on Opus. The two helpers pick Sonnet themselves.
+Tip: run the session on Opus. The three helpers pick Sonnet themselves.
 
 Narration with Kokoro is free. ElevenLabs voices (optional): about one credit per narrated character (a 5-minute
 video is about 4,500). Music costs credits only the first time a mood is used: the 5 mood tracks are made once per machine and reused by every video.

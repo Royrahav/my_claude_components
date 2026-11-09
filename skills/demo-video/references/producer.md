@@ -34,7 +34,9 @@ the final look: a render made before them goes stale with their first fix.
    after the fixes and runs at most once:
    - The build total is more than 5% away from `length_s` (brief.json): run `D plan .`, which
      prints `speed to hit target: <n> (now <m>; set with narrate --speed)`, then
-     `D narrate . --speed <n>`.
+     `D narrate . --speed <n>`. The fit never goes past the tone's comfortable pace (writer.md,
+     Tone, Pace): when plan warns `too long for a comfortable pace`, trim the words it names
+     (writer.md, Revision) or raise `length_s` to the length it prints; never speed up past it.
    - Otherwise, if a fix changed a `say` or a pronunciation: `D narrate .` (it re-voices only the
      changed scenes).
 3. `D build .` again. Still more than 5% away after the speed fit: trim or extend `say`

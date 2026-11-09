@@ -9,7 +9,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { CONFIG_PATH, HF, LEAD, SKILL_DIR, apiKey, clock, config, defaultBrief, ensureDir, flag, formatDurations, hf, loadProject, onlySet, projectFiles, r2, readJson, run, writeJson } from "./lib/util.mjs";
 import { brandFromSite, fontCss, installFonts, loadTheme } from "./lib/theme.mjs";
-import { chooseVoice, defaultVoice, engineOf, ensureSfx, impliedEngine, machineEngine, measuredWps, music, narrate, rateFor, sampleVoiceNames, samples, voicesOf } from "./lib/voice.mjs";
+import { chooseVoice, defaultVoice, engineOf, ensureSfx, impliedEngine, machineEngine, measuredWps, music, narrate, rateFor, sampleVoiceNames, samples, speedFit, voicesOf } from "./lib/voice.mjs";
 import { kokoroSetupLines } from "./lib/kokoro.mjs";
 import { buildTimeline, holdFor, makeCue, silentSeconds } from "./lib/timeline.mjs";
 import { chromeStart, createScene, wrap } from "./lib/kit.mjs";
@@ -28,6 +28,7 @@ import { describeDirection, enteringTransitions, resolveDirection } from "./lib/
 import { templateFor } from "./lib/variants.mjs";
 import { previousThreeD, readThreeD, threeDFlags, threeDPath } from "./lib/scene3d.mjs";
 import { templateFacts, templatePath, templateSource } from "./lib/template-source.mjs";
+import { scriptMarkdown } from "./lib/script-text.mjs";
 
 const argv = process.argv.slice(2);
 const cmd = argv[0];
@@ -136,11 +137,12 @@ function plan() {
   const target = Number(flag(argv, "target", brief.length_s));
   const overhead = total - words / rate;
   const speed = Number(brief.voice.speed ?? 1);
-  const needSpeed = Math.min(1.15, Math.max(0.95, (speed * (words / rate)) / Math.max(1, target - overhead)));
+  const fit = speedFit({ speed, words, rate, target, overhead, tone: resolveDirection(brief.direction).tone });
   say(
     rows.join(" | "),
     `total ~${clock(total)} (${words} words at ${rate.toFixed(2)} w/s), target ${clock(target)}, word budget at the current speed ~${Math.round((target - overhead) * rate)}`,
-    `speed to hit target: ${needSpeed.toFixed(2)} (now ${speed.toFixed(2)}; set with narrate --speed)`,
+    `speed to hit target: ${fit.speed.toFixed(2)} (now ${speed.toFixed(2)}; set with narrate --speed)`,
+    ...(fit.over ? [`warn: too long for a comfortable pace (speed ${fit.max.toFixed(2)} at most): trim ~${fit.over.trim} words, or set length_s to ${fit.over.length}`] : []),
     ...missingQuestionWarnings(scenes).map((w) => `warn: ${w}`),
   );
 }
@@ -266,8 +268,7 @@ function saveBrief(f, before, after) {
 function script() {
   const root = project();
   const { brief, scenes } = loadProject(root);
-  const words = scenes.reduce((n, s) => n + (s.say ?? "").split(/\s+/).filter(Boolean).length, 0);
-  const md = [`# ${brief.product} - narration`, "", `${scenes.length} scenes, ${words} words, about ${clock(words / rateFor(brief))} of speech.`, "", ...scenes.flatMap((s, i) => [`## ${i + 1}. ${s.chapter ?? s.type} (${s.id}, ${s.type})`, "", ...(s.question ? [`Question: ${s.question}`, ""] : []), s.say ?? "(silent)", ""])].join("\n");
+  const { md, words } = scriptMarkdown(brief, scenes, rateFor(brief));
   writeFileSync(join(root, "SCRIPT.md"), md);
   say(`SCRIPT.md written: ${scenes.length} scenes, ${words} words`);
 }

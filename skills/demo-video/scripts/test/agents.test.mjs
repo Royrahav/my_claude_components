@@ -154,6 +154,7 @@ const AGENTS_DIR = join(SKILL_ROOT, "agents");
 const REFERENCES_DIR = join(SKILL_ROOT, "references");
 const ROLES = {
   "demo-researcher": { model: "sonnet", effort: "high", brief: "research.md" },
+  "demo-duck": { model: "sonnet", effort: "high", brief: "duck.md" },
   "demo-checker": { model: "sonnet", effort: "high", brief: "checker.md" },
 };
 
@@ -170,7 +171,7 @@ const skillDocs = () => [
   ...readdirSync(REFERENCES_DIR).map((f) => join(REFERENCES_DIR, f)),
 ];
 
-test("roleAgents_shippedFolder_hasExactlyTheTwoHelperRoles", () => {
+test("roleAgents_shippedFolder_hasExactlyTheHelperRoles", () => {
   const shipped = readdirSync(AGENTS_DIR).filter((file) => /^demo-.+\.md$/.test(file));
 
   assert.deepEqual(shipped.sort(), Object.keys(ROLES).map((name) => `${name}.md`).sort());
@@ -217,8 +218,9 @@ test("skillDocs_containNoEmOrEnDashes", () => {
   assert.deepEqual(withDashes, []);
 });
 
-const SKILL_MD_MAX_BYTES = 14600;
-const WRITER_PLUS_SCENES_MAX_BYTES = 42300;
+// Raised 2026-11-09 for the why-first rules and the duck review the user asked for; keep ratcheting down.
+const SKILL_MD_MAX_BYTES = 14850;
+const WRITER_PLUS_SCENES_MAX_BYTES = 45550;
 const sizeOf = (...parts) => statSync(join(...parts)).size;
 // Measured with LF line endings, so a CRLF checkout does not change the result.
 const lfSizeOf = (...parts) => Buffer.byteLength(readFileSync(join(...parts), "utf8").replace(/\r\n/g, "\n"));

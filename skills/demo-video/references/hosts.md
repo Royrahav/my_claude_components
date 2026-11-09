@@ -7,10 +7,11 @@ tools). Everything in SKILL.md applies; this file only changes how.
   Use it for `D` and in helper prompts.
 - Questions: use Cursor's ask-question tool, at most 4 per batch. Without one, ask in chat as a
   numbered list, recommended option first, and WAIT for the answer.
-- Helpers: `D setup` installs `demo-researcher` and `demo-checker` into `~/.cursor/agents` (the
-  researcher in the background, the checker read-only). Start them by name, with the same prompts.
+- Helpers: `D setup` installs `demo-researcher`, `demo-duck` and `demo-checker` into `~/.cursor/agents`
+  (the researcher in the background, the duck and the checker read-only). Start them by name, with the same prompts.
   They inherit the parent model; for a cheaper one, run `D setup --cursor-model <id>` (a Cursor
-  model id). If they are unavailable, do the research yourself from research.md, and run the
+  model id). If they are unavailable, do the research yourself from research.md, run the duck
+  as a separate pass that reads only the pitch and SCRIPT.md, following duck.md, and run the
   check as a separate pass that reads only FACTS.md and scenes.json, following checker.md (this replaces SKILL.md's general-purpose fallback).
 - Model: pick a Claude model, Opus recommended.
 - Render: start `D render .` as a background terminal command; it is done when it prints the

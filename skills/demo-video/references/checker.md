@@ -38,7 +38,9 @@ a revision changed.
    you understood in the report, at most 3 lines. Flag:
    - `unclear`: a newcomer is lost (a term not defined in plain words, a jump, two ideas in one
      scene, code shown before the idea behind it);
-   - `early detail`: internals or wiring shown before the purpose and the picture (the spine, writer.md, Story order, decides what is early).
+   - `early detail`: internals or wiring shown before the purpose and the picture (the spine, writer.md, Story order, decides what is early);
+   - `why`: by about the third spoken scene, a newcomer still cannot say why this exists (the pain
+     without it) and when they would use it.
 8. Check each scene's `question`: the scene answers it, and it follows from the previous scene.
    Flag `question`: the scene does not answer it, or the question does not follow.
 
@@ -48,7 +50,7 @@ The `understood:` line, then problems only, at most 20 lines, one per line:
 `sNN: "<text>" - unsupported | overstated | wrong: <why> [source]`
 `sNN-sMM: order | early term | open loop: <why>`
 `sNN: "<text>" - process: development-process detail, not product`
-`sNN: unclear | early detail | question: <why>`
+`sNN: unclear | early detail | why | question: <why>`
 
 `understood: <what a newcomer took away, at most 3 lines>` comes first. If there are no problems, reply
 `no issues` after it. Nothing else.

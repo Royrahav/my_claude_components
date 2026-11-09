@@ -6,7 +6,7 @@ import { join } from "node:path";
 export const USER_AGENTS_DIR = join(homedir(), ".claude", "agents");
 
 const AGENT_FILE = /^demo-.+\.md$/;
-const WORKFLOW_ORDER = ["demo-researcher", "demo-checker"];
+const WORKFLOW_ORDER = ["demo-researcher", "demo-duck", "demo-checker"];
 // Role agents earlier versions shipped.
 const RETIRED_AGENTS = ["demo-writer", "demo-producer", "demo-qa"];
 
@@ -39,7 +39,7 @@ export function installAgents(srcDir, destDir) {
 // Cursor model id), readonly and is_background, and no effort.
 
 const CURSOR_MODEL_DEFAULT = "inherit";
-const CURSOR_FLAGS = { "demo-checker": "readonly: true", "demo-researcher": "is_background: true" };
+const CURSOR_FLAGS = { "demo-checker": "readonly: true", "demo-duck": "readonly: true", "demo-researcher": "is_background: true" };
 const HOSTS = ["claude", "cursor", "both"];
 const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---(\r?\n[\s\S]*)?$/;
 

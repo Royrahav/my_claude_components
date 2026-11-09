@@ -28,6 +28,7 @@ multi-agent split (subagents re-pay cache writes). Don't delegate the writing or
 |---|---|---|
 | you (the main session) | Opus recommended | interview, script, production, reviews, gates, delivery |
 | `demo-researcher` | sonnet / high | in the background: reads sources (read-only), writes FACTS.md |
+| `demo-duck` | sonnet / high | hears your pitch, reads SCRIPT.md cold as a newcomer: does the why land, where it gets lost |
 | `demo-checker` | sonnet / high | fact-checks scenes.json against FACTS.md |
 
 Read each guide lazily, once, at its step:
@@ -54,7 +55,7 @@ Read each guide lazily, once, at its step:
   every prompt with "Skill dir: <skill dir>. Project dir: <dir>." Spawn a fresh checker each
   time: cheap and independent.
 - If a `demo-*` type is unavailable, run `D setup` and retry, else spawn `general-purpose` on
-  sonnet with "Read <skill dir>/references/<brief>.md and follow it" (research or checker), plus
+  sonnet, effort high: "Read <skill dir>/references/<brief>.md and follow it" (research, duck, checker), plus
   the usual inputs.
 - Ask with the host's question tool (AskUserQuestion): at most 4 questions per batch, the
   recommended option first, skipping what the context answers. Without one, ask in chat as a
@@ -68,10 +69,9 @@ Read each guide lazily, once, at its step:
 If `~/.config/demo-video/config.json` is missing, run `D setup`. Add `--projects-dir <path>` if
 the user keeps projects somewhere other than `~/demo-videos`. It checks Node 22+, ffmpeg, the
 HyperFrames render browser and Kokoro, prints the fix for anything missing, and
-installs the two helper agents into `~/.claude/agents/` (and `~/.cursor/agents/` when `~/.cursor`
-exists), overwriting older copies. It deletes the three role agents earlier versions shipped and
-never touches other files there, including a user's own `demo-*.md`. Restart Claude Code only if
-the output says the folder was just created.
+installs the helper agents into `~/.claude/agents/` (and `~/.cursor/agents/` when `~/.cursor`
+exists), replacing older copies and retired roles, never a user's own files. Restart Claude Code
+only if it says the folder was just created.
 
 - ffmpeg missing: offer to run the install command it prints.
 - Kokoro missing: offer to run the install it prints.
@@ -120,9 +120,12 @@ already answers:
   exists, turn it on, tell customers, give feedback). It feeds the summary and the close.
 - The one open question that changes the story, if any; a second goes to gate 1.
 
-Then write the script as writer.md says.
+Then write the script as writer.md says, why first.
 
-Fact-check every video: spawn `demo-checker` with "Scenes: all." It replies with an `understood:` line
+Duck review, every video: `D script .`, then spawn `demo-duck` with "Audience: <audience>. Pitch:
+<the pitch>." Fix from its report (writer.md, Duck review).
+
+Fact-check every video, after the duck: spawn `demo-checker` with "Scenes: all." It replies with an `understood:` line
 (what a newcomer took away; if it differs from the logline, fix the order, writer.md, Revision), then
 `no issues` or up to 20 problems. Fix them (one round).
 

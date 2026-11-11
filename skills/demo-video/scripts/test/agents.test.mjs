@@ -218,9 +218,10 @@ test("skillDocs_containNoEmOrEnDashes", () => {
   assert.deepEqual(withDashes, []);
 });
 
-// Raised 2026-11-09 for the why-first rules and the duck review the user asked for; keep ratcheting down.
-const SKILL_MD_MAX_BYTES = 14850;
-const WRITER_PLUS_SCENES_MAX_BYTES = 45550;
+// Raised 2026-11-09 for the why-first rules and the duck review the user asked for, and 2026-11-11 for the
+// intro question and the 3D-for-the-core rule the user asked for; keep ratcheting down.
+const SKILL_MD_MAX_BYTES = 14980;
+const WRITER_PLUS_SCENES_MAX_BYTES = 45800;
 // Measured with LF line endings, so a CRLF checkout does not change the result.
 const lfSizeOf = (...parts) => Buffer.byteLength(readFileSync(join(...parts), "utf8").replace(/\r\n/g, "\n"));
 

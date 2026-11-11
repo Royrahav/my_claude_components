@@ -3,6 +3,7 @@
 // about 0.5 dB of inter-sample overshoot, so -1.5 lands at about -1.2 dBTP).
 import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { introClip, prependIntro } from "./intro.mjs";
 import { loopFilter, loopPlan } from "./music.mjs";
 import { duration, ensureDir, ffmpeg, hf, lufs, r2, run } from "./util.mjs";
 
@@ -46,6 +47,8 @@ export function render(root, brief, tl, { quality = "standard", workers = 5, out
   const measured = `measured_I=${j.input_i}:measured_TP=${j.input_tp}:measured_LRA=${j.input_lra}:measured_thresh=${j.input_thresh}:offset=${j.target_offset}:linear=true`;
   const final = out ?? join(root, "renders", `${brief.name}.mp4`);
   ffmpeg(["-i", video, "-i", mix, "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-af", `loudnorm=${TARGET}:${measured},aresample=48000`, "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", final]);
+  const clip = introClip(brief);
+  if (clip) musicNote += `, ${prependIntro(root, final, clip)}`;
 
   const v = run("ffmpeg", ["-hide_banner", "-nostats", "-i", final, "-af", "ebur128=peak=true:framelog=quiet", "-f", "null", "-"]).err;
   const I = v.match(/I:\s+(-?[\d.]+) LUFS/)?.[1];

@@ -90,9 +90,7 @@ only if it says the folder was just created.
 3. While it runs, ask one AskUserQuestion batch:
    - Length: "~3 min overview (Recommended)", "~90 s teaser", "~5 min deep dive".
    - Audience: "Mixed: devs, PMs, customer-facing (Recommended)", "Engineers", "Customers / execs".
-   - Tone: "Balanced: clear, with a light touch (Recommended)", "Light and friendly", "Playful and
-     funny", "Serious and important". For an incident, security fix, outage or compliance change,
-     recommend "Serious" and offer "Critical: urgent, must act" in place of "Playful".
+   - Intro: "Add the intro clip (Recommended)", "No intro" (brief `intro`). Skip it without config.json `intro_file`.
    - Look: "labOS light (Recommended)", "labOS dark", "Neutral light", "Midnight (unbranded)". Other: a
      website URL, brand colors, a Google font and a logo, or art direction in words ("retro terminal"),
      recorded verbatim in `direction.notes`. A labOS development always
@@ -102,7 +100,7 @@ only if it says the folder was just created.
 
    If the request already gives a length or an audience ("~75 s", "support engineers"), use it; skip
    that question.
-4. Apply the answers: `length_s`, `audience`, `direction.tone` (and `notes`), and `captions`,
+4. Apply the answers: `length_s`, `audience`, `intro`, `direction.notes`, and `captions`,
    `music`, `sfx` on unless the request says otherwise, in brief.json. Switch themes with
    `D theme . --use labos-dark|neutral|midnight`; a custom brand: see Themes.
 
@@ -114,6 +112,9 @@ Focus interview, one batch of at most 4, options taken from FACTS.md, skipping w
 already answers:
 - Core message: "What must viewers walk away with?", 2-3 angles from `Angles`, recommended first
   (re-rank if batch 1 changed the audience).
+- Tone: "Balanced: clear, with a light touch (Recommended)", "Light and friendly", "Playful and
+  funny", "Serious and important". For an incident, security fix, outage or compliance change,
+  recommend "Serious" and offer "Critical: urgent, must act" in place of "Playful" (`direction.tone`).
 - Cut (multiSelect), only when `Scope`'s "<N> distinct ideas found" exceeds what the final length
   from batch 1 fits: "What can be cut or only mentioned?" (`Scope`).
 - Next step: "What should viewers do after watching?", 3 options fitted to the content (know it
@@ -196,7 +197,7 @@ To resume a project in a new session, `D status <dir>` prints what exists and th
 ## Project files
 
 - `brief.json`: name (output file name), product, eyebrow,
-  audience, length_s, voice {engine, id, name, speed}, captions, music, sfx, music_gain_db,
+  audience, length_s, intro (true or a clip path), voice {engine, id, name, speed}, captions, music, sfx, music_gain_db,
   quality (draft, standard or high), music_mood (one of the 5 library moods), music_prompt, direction (preset and
   knobs, tone, freedom, notes; scenes.md). In `~/.config/demo-video/`: taste.md and history.jsonl (written by render).
 - `scenes.json`: the script and scenes (format: references/scenes.md).

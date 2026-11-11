@@ -169,10 +169,11 @@ template, history warnings) never overrides the order.
 
 ## 3D where it fits
 
-3D only for spatial or flow content: layers, hubs, architectures, journeys; explanations, code, numbers, lists and
-decisions stay 2D. At most a third of the scenes. For spatial content design one 3D scene for this topic (custom-scene.md,
-3D recipe), never an example with only its data changed; `iso-journey` and `iso-map` are fallbacks, once each. Vary form
-and camera across 3D scenes and from the last video (visuals.md).
+Viewers like topic-built 3D best: give the heart of the development (its core mechanism) one when it has a spatial,
+flow or cause-and-effect shape; the summary may be a 3D chain of events (scenes.md). Explanations, code, numbers, lists
+and decisions stay 2D. At most a third of the scenes. Design each for this topic (custom-scene.md, 3D recipe), never an
+example with only its data changed; `iso-journey` and `iso-map` are fallbacks, once each. Vary form and camera across
+3D scenes and from the last video (visuals.md). Tune zoom and lift until every label reads on the contact sheet.
 
 ## Signature scene
 

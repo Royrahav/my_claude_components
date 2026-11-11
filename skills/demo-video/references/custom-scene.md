@@ -192,6 +192,12 @@ history catches a renamed copy of the last video's template. Start a template fr
   "data": { "layers": [{ "name": "Request Scope", "note": "the end-of-request hook", "down": "Scope", "up": "released" }, { "name": "Lock participant", "note": "records the locks", "down": "participant", "up": "throws" }, { "name": "Order locks", "note": "marks cleared", "down": "locks", "up": "clears" }] } }
 ```
 
+- `<skill>/assets/examples/signature-iso-chain.mjs`: the whole development as a chain of events, 4-6 stops in a zigzag
+  read left to right. On each stop's cue the link from the previous one grows, the object rises on its lit pad and its
+  name shows; a stop can act on its own cue (a crate breaks, a clock runs, gears turn, a lock opens). The camera cranes
+  from a flat, chart-like view into the 3D world. Made for a summary (`"summary": true`). Data: `stops` [{ title, kind,
+  note?, at?, act?: { action, at?, args? } }]. Names sit at one height, so the zigzag keeps neighbours apart.
+
 - `<skill>/assets/examples/signature-iso-orbit.mjs`: one central object on a ring with satellites around it. On each
   satellite's cue a line grows from the center, the satellite pops in on its pad and its name rises; the center can act
   once they are all joined. The camera orbits through the whole scene while it pushes in slowly. Data:

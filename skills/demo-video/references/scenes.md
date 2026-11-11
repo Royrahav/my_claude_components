@@ -38,6 +38,7 @@ structure:
 - **Checklist**: `bullets` or `cards`, one item per thing to remember or check.
 - **"What to do now" card**: `cards` or `statement`, the next action for each audience.
 - **Zoom-out**: the whole picture reassembled, on a signature scene (visuals.md).
+- **3D chain of events**: the development replayed as linked stops (`assets/examples/signature-iso-chain.mjs`).
 
 Any template can be the summary: set `"summary": true` on the scene (a `recap` always is one).
 Build warns and `D check` fails without it. A summary scene shows an accent "Summary" label
